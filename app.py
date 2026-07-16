@@ -624,7 +624,7 @@ h1, h2, h3, .stHeading,
     margin-bottom: 0.4rem !important; /* Tight spacing below */
     margin-top: 1.0rem !important;
 }
-/* Main App Header Style (Matched with custom HTML) */
+/* Main App Header Style (Bypasses browser scaling and flashing) */
 .custom-app-header {
     font-size: 3.2rem !important;
     font-weight: 800 !important;
@@ -632,6 +632,7 @@ h1, h2, h3, .stHeading,
     line-height: 1.15 !important;
     margin-bottom: 0.6rem !important;
     margin-top: 0.5rem !important;
+    display: block !important;
 }
 h2 {
     font-size: 1.65rem !important; /* Larger section header */
@@ -675,12 +676,25 @@ input {
     color: #FFFFFF !important;
     border: 1px solid #444444 !important;
 }
+
+/* Responsive CSS query to scale title and spacing for mobile devices */
+@media (max-width: 768px) {
+    .custom-app-header {
+        font-size: 2.3rem !important; /* Stable mobile size, no browser clamping */
+    }
+    h2 {
+        font-size: 1.45rem !important;
+    }
+    h3 {
+        font-size: 1.15rem !important;
+    }
+}
 </style>
 """, unsafe_allow_html=True)
 
 # STATIC HTML HEADER TO ELIMINATE RE-RENDERING FLASHING
 st.markdown(
-    "<h1 class='custom-app-header'>Auckland Unitary Plan Site Info</h1>", 
+    "<div class='custom-app-header'>Auckland Unitary Plan Site Info</div>", 
     unsafe_allow_html=True
 )
 st.markdown("Zoning, legal, and hazard data.")
@@ -804,7 +818,7 @@ if address_input:
         with col1:
             raw_details = [
                 "## Raw Property Details",
-                f"- **Official Zoning:** {zone_name}",
+                f"- **Official Zoning:** **{zone_name}**",
                 "",
                 "### LINZ Cadastral Details",
                 f"- **Legal Description:** {legal_desc}",
@@ -861,13 +875,13 @@ if address_input:
                 "",
                 "**Geotechnical Assessment:**",
                 f"{hazards['landslide']}",
-                "",
+                "<div style='height: 1.2rem;'></div>", # Spacing divider
                 "### Mana Whenua & Treaty Settlements",
                 f"- **Mana Whenua Site Status:** {mana_status}",
                 f"- **Appendix 21 District:** {iwi_profile['district']}",
                 f"- **Settlement Acts:** {', '.join(iwi_profile['acts'])}",
                 f"- **Statutory Iwi:** {', '.join(iwi_profile['iwi_list'])}",
-                ""
+                "<div style='height: 1.2rem;'></div>"  # Spacing divider
             ]
             # Render Column 2 details as a single compiled Markdown block
             st.markdown("\n".join(col2_details))
