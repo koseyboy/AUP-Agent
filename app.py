@@ -870,7 +870,29 @@ if search_input:
             expanded=False
         ):
             map_df = pd.DataFrame({'lat': [lat], 'lon': [lon]})
-            st.map(map_df, zoom=17)
+            
+            # IMPLEMENT PLOTLY EXPRESS SATELLITE BASMAP INTERFACE
+            import plotly.express as px
+            fig = px.scatter_mapbox(
+                map_df, 
+                lat="lat", 
+                lon="lon", 
+                zoom=17,
+                size_max=15
+            )
+            fig.update_layout(
+                mapbox_style="white-bg",
+                mapbox_layers=[{
+                    "below": 'traces',
+                    "sourcetype": "raster",
+                    "sourceattribution": "Esri World Imagery",
+                    "source": [
+                        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                    ]
+                }]
+            )
+            fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=400, showlegend=False)
+            st.plotly_chart(fig, use_container_width=True)
         
         with st.spinner("Gathering live Council & LINZ GIS records..."):
             zone_data = query_council_gis_layer(lat, lon, "Unitary_Plan_Base_Zone")
