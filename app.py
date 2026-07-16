@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 import urllib.parse
 import requests
 import pandas as pd
@@ -13,17 +14,22 @@ except ImportError:
     OPENAI_AVAILABLE = False
     OpenAI = None
 
+# Configure logging for observability and diagnostic debugging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("AUP_Feasibility_App")
+
 # =====================================================================
 # CONFIGURATION & DATA STORAGE (8 FULLY INDEXED ZONES)
 # =====================================================================
-# Your OpenAI key is split to prevent Windows clipboard clipping
-OPENAI_API_KEY = (
-    "sk-proj-E4AjMSD74F94Kgu"
-    "7rjObEYGsMFye4Et6R1GBJoJsTB4UT"
-    "9jNhGQQ9eR1paq5NgWPu9kWlh8M19T3BlbkFJtoW_1_zly1jU0H3e"
-    "qniv4aOHq-eoivumqp34MLtYRCpaNztRgUzMlRMKwng-E2Sa7AC4Y"
-    "_gycA"
-)
+
+# Hardcoded keys have been removed for security compliance.
+# Use Streamlit secrets (.streamlit/secrets.toml) or the Sidebar input.
+def resolve_openai_api_key(sidebar_key=None):
+    if sidebar_key and sidebar_key.strip():
+        return sidebar_key.strip()
+    if "OPENAI_API_KEY" in st.secrets:
+        return st.secrets["OPENAI_API_KEY"]
+    return os.environ.get("OPENAI_API_KEY", "")
 
 AUP_KNOWLEDGE_BASE = {
     "Single House": {
@@ -36,18 +42,10 @@ AUP_KNOWLEDGE_BASE = {
         "impervious": "60% max",
         "desc": "Suburban standalone houses, low density.",
         "activities": {
-            "1 Standalone Dwelling": (
-                "Permitted (P)"
-            ),
-            "2 or more Dwellings": (
-                "Non-Complying (NC)"
-            ),
-            "Minor Dwelling (up to 65m²)": (
-                "Permitted (P) (Max 1 per site)"
-            ),
-            "Accessory Buildings": (
-                "Permitted (P) (Must meet yard rules)"
-            )
+            "1 Standalone Dwelling": "Permitted (P)",
+            "2 or more Dwellings": "Non-Complying (NC)",
+            "Minor Dwelling (up to 65m²)": "Permitted (P) (Max 1 per site)",
+            "Accessory Buildings": "Permitted (P) (Must meet yard rules)"
         }
     },
     "Mixed Housing Suburban": {
@@ -60,18 +58,10 @@ AUP_KNOWLEDGE_BASE = {
         "impervious": "60% max",
         "desc": "Suburban duplexes, standalone, terraces.",
         "activities": {
-            "1 to 3 Dwellings": (
-                "Permitted (P) (If standards met)"
-            ),
-            "4 or more Dwellings": (
-                "Restricted Discretionary (RD)"
-            ),
-            "Minor Dwelling": (
-                "Permitted (P)"
-            ),
-            "Accessory Buildings": (
-                "Permitted (P) (Must meet yard rules)"
-            )
+            "1 to 3 Dwellings": "Permitted (P) (If standards met)",
+            "4 or more Dwellings": "Restricted Discretionary (RD)",
+            "Minor Dwelling": "Permitted (P)",
+            "Accessory Buildings": "Permitted (P) (Must meet yard rules)"
         }
     },
     "Mixed Housing Urban": {
@@ -84,18 +74,10 @@ AUP_KNOWLEDGE_BASE = {
         "impervious": "60% max",
         "desc": "Urban terraces and low-rise apartments.",
         "activities": {
-            "1 to 3 Dwellings": (
-                "Permitted (P) (If standards met)"
-            ),
-            "4 or more Dwellings": (
-                "Restricted Discretionary (RD)"
-            ),
-            "Minor Dwelling": (
-                "Permitted (P)"
-            ),
-            "Accessory Buildings": (
-                "Permitted (P) (Must meet yard rules)"
-            )
+            "1 to 3 Dwellings": "Permitted (P) (If standards met)",
+            "4 or more Dwellings": "Restricted Discretionary (RD)",
+            "Minor Dwelling": "Permitted (P)",
+            "Accessory Buildings": "Permitted (P) (Must meet yard rules)"
         }
     },
     "Terraced Housing and Apartment Buildings": {
@@ -108,18 +90,10 @@ AUP_KNOWLEDGE_BASE = {
         "impervious": "70% max",
         "desc": "High-density terraces/apartments.",
         "activities": {
-            "1 to 3 Dwellings": (
-                "Permitted (P) (If standards met)"
-            ),
-            "4 or more Dwellings": (
-                "Restricted Discretionary (RD)"
-            ),
-            "Minor Dwelling": (
-                "Not typical / NC"
-            ),
-            "Accessory Buildings": (
-                "Permitted (P)"
-            )
+            "1 to 3 Dwellings": "Permitted (P) (If standards met)",
+            "4 or more Dwellings": "Restricted Discretionary (RD)",
+            "Minor Dwelling": "Not typical / NC",
+            "Accessory Buildings": "Permitted (P)"
         }
     },
     "Large Lot": {
@@ -132,15 +106,9 @@ AUP_KNOWLEDGE_BASE = {
         "impervious": "10% or 400m² (whichever is less)",
         "desc": "Spacious residential on urban peripheries.",
         "activities": {
-            "1 Standalone Dwelling": (
-                "Permitted (P)"
-            ),
-            "Minor Dwelling": (
-                "Restricted Discretionary (RD) (Max 65m²)"
-            ),
-            "Accessory Buildings": (
-                "Permitted (P) (Must meet yard rules)"
-            )
+            "1 Standalone Dwelling": "Permitted (P)",
+            "Minor Dwelling": "Restricted Discretionary (RD) (Max 65m²)",
+            "Accessory Buildings": "Permitted (P) (Must meet yard rules)"
         }
     },
     "Rural and Coastal Settlement": {
@@ -153,15 +121,9 @@ AUP_KNOWLEDGE_BASE = {
         "impervious": "10% or 200m² (whichever is less)",
         "desc": "Spacious living in coastal/rural townships.",
         "activities": {
-            "1 Standalone Dwelling": (
-                "Permitted (P)"
-            ),
-            "Minor Dwelling": (
-                "Restricted Discretionary (RD) (Max 65m²)"
-            ),
-            "Accessory Buildings": (
-                "Permitted (P) (Must meet yard rules)"
-            )
+            "1 Standalone Dwelling": "Permitted (P)",
+            "Minor Dwelling": "Restricted Discretionary (RD) (Max 65m²)",
+            "Accessory Buildings": "Permitted (P) (Must meet yard rules)"
         }
     },
     "Future Urban": {
@@ -174,18 +136,10 @@ AUP_KNOWLEDGE_BASE = {
         "impervious": "No general limit (controlled by setbacks)",
         "desc": "Holding zone for future urban master plans.",
         "activities": {
-            "1 Standalone Dwelling": (
-                "Permitted (P)"
-            ),
-            "Minor Dwelling": (
-                "Restricted Discretionary (RD) (Site must be > 1ha)"
-            ),
-            "Accessory Buildings": (
-                "Permitted (P) (Must meet yard rules)"
-            ),
-            "Subdivision": (
-                "Non-Complying (NC) (Awaiting live zoning)"
-            )
+            "1 Standalone Dwelling": "Permitted (P)",
+            "Minor Dwelling": "Restricted Discretionary (RD) (Site must be > 1ha)",
+            "Accessory Buildings": "Permitted (P) (Must meet yard rules)",
+            "Subdivision": "Non-Complying (NC) (Awaiting live zoning)"
         }
     },
     "Countryside Living": {
@@ -198,18 +152,10 @@ AUP_KNOWLEDGE_BASE = {
         "impervious": "No general limit (controlled by setbacks)",
         "desc": "Rural lifestyle living and low-density holdings.",
         "activities": {
-            "1 Standalone Dwelling": (
-                "Permitted (P)"
-            ),
-            "Minor Dwelling": (
-                "Permitted (P) (Site > 1ha, max 65m²)"
-            ),
-            "Accessory Buildings": (
-                "Permitted (P) (Sheds/Garages)"
-            ),
-            "Farming/Grazing": (
-                "Permitted (P) (Low-intensity agriculture)"
-            )
+            "1 Standalone Dwelling": "Permitted (P)",
+            "Minor Dwelling": "Permitted (P) (Site > 1ha, max 65m²)",
+            "Accessory Buildings": "Permitted (P) (Sheds/Garages)",
+            "Farming/Grazing": "Permitted (P) (Low-intensity agriculture)"
         }
     }
 }
@@ -219,13 +165,12 @@ AUP_KNOWLEDGE_BASE = {
 # =====================================================================
 def geocode_auckland_address(address):
     clean = urllib.parse.quote(address + ', Auckland, NZ')
-    url = (
-        f"https://nominatim.openstreetmap.org/search?"
-        f"q={clean}&format=json&limit=1"
-    )
-    headers = {'User-Agent': 'AUP_Feasibility_v3.6'}
+    url = f"https://nominatim.openstreetmap.org/search?q={clean}&format=json&limit=1"
+    headers = {'User-Agent': 'AUP_Feasibility_v3.6_Local'}
     try:
-        res = requests.get(url, headers=headers, timeout=5).json()
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        res = response.json()
         if res:
             return (
                 float(res[0]['lat']), 
@@ -233,7 +178,7 @@ def geocode_auckland_address(address):
                 res[0]['display_name']
             )
     except Exception as e:
-        print(f"[Error] Geocoder: {e}")
+        logger.error(f"Geocoding request failed: {e}")
     return None, None, None
 
 def translate_zone_id_to_name(zone_id):
@@ -243,24 +188,20 @@ def translate_zone_id_to_name(zone_id):
         "FeatureServer/0?f=json"
     )
     try:
-        types = requests.get(metadata_url, timeout=5).json().get('types', [])
+        response = requests.get(metadata_url, timeout=10)
+        response.raise_for_status()
+        types = response.json().get('types', [])
         for t in types:
             if str(t.get('id')) == str(zone_id):
                 return t.get('name')
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"Could not translate zone ID {zone_id} using service metadata: {e}")
     
     fallbacks = {
-        8: (
-            "Residential - Terrace Housing and "
-            "Apartment Buildings Zone"
-        ),
+        8: "Residential - Terrace Housing and Apartment Buildings Zone",
         18: "Residential - Mixed Housing Suburban Zone",
         19: "Residential - Single House Zone",
-        20: (
-            "Residential - Rural and Coastal "
-            "Settlement Zone"
-        ),
+        20: "Residential - Rural and Coastal Settlement Zone",
         23: "Residential - Large Lot Zone",
         60: "Residential - Mixed Housing Urban Zone",
         61: "Future Urban Zone",
@@ -288,19 +229,17 @@ def format_landslide_data(attributes):
         f"- **Score:** {score:.1f}",
         f"- **Landslides:** {count}",
         "",
-        "<div style='height: 1.0rem;'></div>", # GAP 5: LANDSLIDES TO GUIDANCE HEADER
+        "<div style='height: 1.0rem;'></div>", 
         "",
-        "Town Planning Guidance Note:", # Unbolded
+        "Town Planning Guidance Note:", 
         "",
-        "<div style='height: 1.0rem;'></div>", # GAP 6: GUIDANCE HEADER TO NOTE LIST
+        "<div style='height: 1.0rem;'></div>", 
         ""
     ]
     if sus.lower() in ['low', 'very low']:
         summary.extend([
-            "- *'Low/Very Low' rating is favorable. "
-            "Standard foundations fine.*",
-            "- *CPEng stability letter "
-            "may be requested by council.*"
+            "- *'Low/Very Low' rating is favorable. Standard foundations fine.*",
+            "- *CPEng stability letter may be requested by council.*"
         ])
     elif sus.lower() in ['medium', 'moderate']:
         summary.extend([
@@ -309,10 +248,8 @@ def format_landslide_data(attributes):
         ])
     elif sus.lower() in ['high', 'very high']:
         summary.extend([
-            "- *WARNING: High landslide risk. "
-            "Structural retaining required.*",
-            "- *Natural Hazards Resource Consent "
-            "(Chapter E36) is triggered.*"
+            "- *WARNING: High landslide risk. Structural retaining required.*",
+            "- *Natural Hazards Resource Consent (Chapter E36) is triggered.*"
         ])
     return "\n".join(summary)
 
@@ -332,11 +269,13 @@ def query_council_gis_layer(lat, lon, service_name):
         'geometry': f"{lon},{lat}"
     }
     try:
-        res = requests.get(url, params=params, timeout=5).json()
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        res = response.json()
         if 'features' in res and len(res['features']) > 0:
             return [feat['attributes'] for feat in res['features']]
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"Error querying Council GIS layer ({service_name}): {e}")
     return []
 
 def query_unitary_overlays(lat, lon):
@@ -360,7 +299,9 @@ def query_unitary_overlays(lat, lon):
     
     found = []
     try:
-        res = requests.get(url, params=params, timeout=5).json()
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        res = response.json()
         for r in res.get('results', []):
             layer = r.get('layerName')
             attrs = r.get('attributes', {})
@@ -370,8 +311,8 @@ def query_unitary_overlays(lat, lon):
                     if layer.lower() != "precincts":
                         if layer not in [o['layer'] for o in found]:
                             found.append({"layer": layer, "val": val})
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"Error querying Unitary Overlays identify: {e}")
     return found
 
 def query_unitary_precincts(lat, lon):
@@ -396,7 +337,9 @@ def query_unitary_precincts(lat, lon):
     }
     precincts = []
     try:
-        res = requests.post(url, data=params, timeout=5).json()
+        response = requests.post(url, data=params, timeout=10)
+        response.raise_for_status()
+        res = response.json()
         for f in res.get('features', []):
             attrs = f.get('attributes', {})
             val = None
@@ -415,15 +358,12 @@ def query_unitary_precincts(lat, lon):
                 sub = attrs.get('SUBPRECINCT')
             if val:
                 p_name = str(val)
-                if (
-                    sub and 
-                    str(sub).lower() not in ["null", "none", "nan"]
-                ):
+                if sub and str(sub).lower() not in ["null", "none", "nan"]:
                     p_name += f" (Sub-precinct {sub})"
                 if p_name not in precincts:
                     precincts.append(p_name)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"Error querying Unitary Precincts: {e}")
     return precincts
 
 def query_nz_legal_description(lat, lon):
@@ -447,7 +387,9 @@ def query_nz_legal_description(lat, lon):
         'f': 'json'
     }
     try:
-        res = requests.post(url, data=params, timeout=5).json()
+        response = requests.post(url, data=params, timeout=10)
+        response.raise_for_status()
+        res = response.json()
         features = res.get('features', [])
         if features:
             attrs = features[0].get('attributes', {})
@@ -461,8 +403,8 @@ def query_nz_legal_description(lat, lon):
                 except Exception:
                     area_str = str(area_val)
             return legal, title, area_str
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"Error querying LINZ cadastral parcel: {e}")
     return "Unknown Lot/DP", "Unknown Title", "Unknown"
 
 def resolve_iwi_interests(lat, lon, address_str):
@@ -538,7 +480,7 @@ def ask_ai_planning_expert(
     legal, title, lot_size
 ):
     if not OPENAI_AVAILABLE:
-        return "[System Note] OpenAI module not available. AI skipped."
+        return "[System Note] OpenAI module not available. AI synthesis skipped."
         
     rules_dict = rules or {}
     acts = rules_dict.get('activities', {})
@@ -593,6 +535,7 @@ def ask_ai_planning_expert(
         )
         return response.choices[0].message.content
     except Exception as e:
+        logger.error(f"OpenAI completion request failed: {e}")
         return f"[Agent Error] Could not generate AI brief: {e}"
 
 # =====================================================================
@@ -709,7 +652,7 @@ with st.sidebar:
     user_api_key = st.text_input(
         "OpenAI API Key (Optional)", 
         type="password",
-        help="If left blank, the app will use the hardcoded key."
+        help="Provide your personal OpenAI Key. If left blank, local variables and system secrets are checked."
     )
 
 address_input = st.text_input(
@@ -733,7 +676,7 @@ if address_input:
             expanded=False
         ):
             map_df = pd.DataFrame({'lat': [lat], 'lon': [lon]})
-            st.map(map_df, zoom=17, size=20)
+            st.map(map_df, zoom=17)
         
         with st.spinner("Gathering live Council & LINZ GIS records..."):
             zone_data = query_council_gis_layer(lat, lon, "Unitary_Plan_Base_Zone")
@@ -753,8 +696,7 @@ if address_input:
             )
             mana_whenua_data = query_council_gis_layer(
                 lat, lon, 
-                "Sites_and_Places_of_Significance_"
-                "to_Mana_Whenua_Overlay"
+                "Sites_and_Places_of_Significance_to_Mana_Whenua_Overlay"
             )
             overlays = query_unitary_overlays(lat, lon)
             precincts = query_unitary_precincts(lat, lon)
@@ -830,29 +772,29 @@ if address_input:
             raw_details = [
                 "## Property Details",
                 "",
-                "<div style='height: 1.0rem;'></div>", # GAP 1: MAIN TO SUBHEADER
+                "<div style='height: 1.0rem;'></div>", 
                 "",
                 "### AUP Zone",
                 "",
-                "<div style='height: 1.0rem;'></div>", # GAP 2: SUBHEADER TO LIST
+                "<div style='height: 1.0rem;'></div>", 
                 "",
                 f"- **{zone_name}**",
                 "",
-                "<div style='height: 1.0rem;'></div>", # GAP 3: LIST TO CADASTRAL HEADER
+                "<div style='height: 1.0rem;'></div>", 
                 "",
                 "### LINZ Cadastral Details",
                 "",
-                "<div style='height: 1.0rem;'></div>", # GAP 4: HEADER TO LIST
+                "<div style='height: 1.0rem;'></div>", 
                 "",
                 f"- **Legal Description:** {legal_desc}",
                 f"- **Certificate of Title:** {title_no}",
                 f"- **Lot Size:** {lot_size}",
                 "",
-                "<div style='height: 1.0rem;'></div>", # GAP 5: LIST TO RULES HEADER
+                "<div style='height: 1.0rem;'></div>", 
                 "",
                 "### Base Development Rules",
                 "",
-                "<div style='height: 1.0rem;'></div>", # GAP 6: HEADER TO RULES LIST
+                "<div style='height: 1.0rem;'></div>", 
                 ""
             ]
             
@@ -867,15 +809,11 @@ if address_input:
                     f"- **Impervious Coverage:** {rules['impervious']}",
                     f"- **Zone Objective:** {rules['desc']}",
                     "",
-                    "<div style='height: 1.0rem;'></div>", # GAP 7: LIST TO TABLE HEADER
+                    "<div style='height: 1.0rem;'></div>", 
                     "",
-                    # Split to prevent Windows clipboard wrapping issues
-                    (
-                        "#### Activity Status Table "
-                        "(AUP Activity Table):"
-                    ),
+                    "#### Activity Status Table (AUP Activity Table):",
                     "",
-                    "<div style='height: 1.0rem;'></div>", # GAP 8: HEADER TO TABLE
+                    "<div style='height: 1.0rem;'></div>", 
                     ""
                 ])
                 for act, status in rules['activities'].items():
@@ -887,11 +825,11 @@ if address_input:
                 
             raw_details.extend([
                 "",
-                "<div style='height: 1.0rem;'></div>", # GAP 9: TABLE TO PRECINCTS HEADER
+                "<div style='height: 1.0rem;'></div>", 
                 "",
                 "### Precincts & Overlays",
                 "",
-                "<div style='height: 1.0rem;'></div>", # GAP 10: HEADER TO LIST
+                "<div style='height: 1.0rem;'></div>", 
                 ""
             ])
             if precincts:
@@ -918,34 +856,34 @@ if address_input:
             col2_details = [
                 "## Geotech, Hazards & Cultural",
                 "",
-                "<div style='height: 1.0rem;'></div>", # GAP 1: MAIN TO SUBHEADER
+                "<div style='height: 1.0rem;'></div>", 
                 "",
                 "### Environmental Hazards",
                 "",
-                "<div style='height: 1.0rem;'></div>", # GAP 2: SUBHEADER TO FLOW PATH
+                "<div style='height: 1.0rem;'></div>", 
                 "",
                 f"- **Overland Flow Paths:** {hazards['overland_flow']}",
                 "",
-                "<div style='height: 1.0rem;'></div>", # GAP 3: FLOW PATH TO ASSESS HEADER
+                "<div style='height: 1.0rem;'></div>", 
                 "",
-                "Geotechnical Assessment:", # Unbolded
+                "Geotechnical Assessment:", 
                 "",
-                "<div style='height: 1.0rem;'></div>", # GAP 4: ASSESS HEADER TO DATA LIST
+                "<div style='height: 1.0rem;'></div>", 
                 "",
                 f"{hazards['landslide']}",
                 "", 
-                "<div style='height: 1.0rem;'></div>", # GAP 7: ASSESS LIST TO MANA WHENUA HEADER
+                "<div style='height: 1.0rem;'></div>", 
                 "", 
                 "### Mana Whenua & Treaty Settlements",
                 "",
-                "<div style='height: 1.0rem;'></div>", # GAP 8: MANA WHENUA HEADER TO LIST
+                "<div style='height: 1.0rem;'></div>", 
                 "",
                 f"- **Mana Whenua Site Status:** {mana_status}",
                 f"- **Appendix 21 District:** {iwi_profile['district']}",
                 f"- **Settlement Acts:** {', '.join(iwi_profile['acts'])}",
                 f"- **Statutory Iwi:** {', '.join(iwi_profile['iwi_list'])}",
                 "", 
-                "<div style='height: 1.0rem;'></div>", # GAP 9: LIST TO AI SYNTHESIS HEADER
+                "<div style='height: 1.0rem;'></div>", 
                 "" 
             ]
             # Render Column 2 details as a single compiled Markdown block
@@ -954,20 +892,13 @@ if address_input:
                 unsafe_allow_html=True
             )
             
-            # AI Report Generator (With Manual Synthesis Button)
+            # AI Report Generator
             st.header("AI Town Planning Synthesis")
             
-            # Dynamic API key resolution
-            api_key_to_use = None
-            if user_api_key:
-                api_key_to_use = user_api_key
-            elif "OPENAI_API_KEY" in st.secrets:
-                api_key_to_use = st.secrets["OPENAI_API_KEY"]
-            else:
-                api_key_to_use = OPENAI_API_KEY
+            api_key_to_use = resolve_openai_api_key(user_api_key)
             
             if not api_key_to_use:
-                st.warning("Please configure an OpenAI API key.")
+                st.warning("Please configure an OpenAI API key via system secrets or the sidebar.")
             else:
                 if st.button("Synthesize Planning Report"):
                     with st.spinner("Synthesizing Planning Report..."):
