@@ -286,34 +286,29 @@ def format_landslide_data(attributes):
         f"- **Slope:** {slope:.1f}° facing {aspect}",
         f"- **Geology:** {zone}",
         f"- **Score:** {score:.1f}",
-        f"- **Landslides:** {count}"
+        f"- **Landslides:** {count}",
+        "", # Spacer before guidance header
+        "**Town Planning Guidance Note:**"
     ]
-    summary.append("\n**Town Planning Guidance Note:**")
     if sus.lower() in ['low', 'very low']:
-        summary.append(
+        summary.extend([
             "- *'Low/Very Low' rating is favorable. "
-            "Standard foundations fine.*"
-        )
-        summary.append(
+            "Standard foundations fine.*",
             "- *CPEng stability letter "
             "may be requested by council.*"
-        )
+        ])
     elif sus.lower() in ['medium', 'moderate']:
-        summary.append(
-            "- *'Medium' rating indicates soil movement risk.*"
-        )
-        summary.append(
+        summary.extend([
+            "- *'Medium' rating indicates soil movement risk.*",
             "- *GIR Report and specialized foundations required.*"
-        )
+        ])
     elif sus.lower() in ['high', 'very high']:
-        summary.append(
+        summary.extend([
             "- *WARNING: High landslide risk. "
-            "Structural retaining required.*"
-        )
-        summary.append(
+            "Structural retaining required.*",
             "- *Natural Hazards Resource Consent "
             "(Chapter E36) is triggered.*"
-        )
+        ])
     return "\n".join(summary)
 
 def query_council_gis_layer(lat, lon, service_name):
@@ -875,13 +870,17 @@ if address_input:
                 "",
                 "**Geotechnical Assessment:**",
                 f"{hazards['landslide']}",
-                "<div style='height: 1.2rem;'></div>", # Spacing divider
+                "", # MANDATORY BLANK LINE BEFORE HTML SPACER
+                "<div style='height: 1.2rem;'></div>",
+                "", # MANDATORY BLANK LINE AFTER HTML SPACER
                 "### Mana Whenua & Treaty Settlements",
                 f"- **Mana Whenua Site Status:** {mana_status}",
                 f"- **Appendix 21 District:** {iwi_profile['district']}",
                 f"- **Settlement Acts:** {', '.join(iwi_profile['acts'])}",
                 f"- **Statutory Iwi:** {', '.join(iwi_profile['iwi_list'])}",
-                "<div style='height: 1.2rem;'></div>"  # Spacing divider
+                "", # MANDATORY BLANK LINE BEFORE HTML SPACER
+                "<div style='height: 1.2rem;'></div>",
+                "" # MANDATORY BLANK LINE AFTER HTML SPACER
             ]
             # Render Column 2 details as a single compiled Markdown block
             st.markdown("\n".join(col2_details))
