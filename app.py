@@ -255,6 +255,66 @@ def geocode_auckland_address(address):
         logger.error(f"Geocoding request failed: {e}")
     return None, None, None
 
+def geocode_legal_description(appellation_str):
+    """
+    Queries the LINZ Primary Parcels layer directly to find the centroid 
+    coordinates of a parcel from a Lot/DP legal description.
+    """
+    url = (
+        "https://services.arcgis.com/xdsHIIxuCWByZiCB/"
+        "arcgis/rest/services/LINZ_NZ_Primary_Parcels/"
+        "FeatureServer/0/query"
+    )
+    
+    # Standardize string formatting
+    cleaned = " ".join(appellation_str.upper().split())
+    params = {
+        'where': f"UPPER(appellation) = '{cleaned}'",
+        'outFields': 'appellation,titles,calc_area',
+        'returnGeometry': 'true',
+        'outSR': '4326',
+        'f': 'json'
+    }
+    
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        res = response.json()
+        features = res.get('features', [])
+        
+        # Try a wildcard match if an exact match yields nothing
+        if not features:
+            like_search = cleaned.replace(" ", "%")
+            params['where'] = f"UPPER(appellation) LIKE '%{like_search}%'"
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            res = response.json()
+            features = res.get('features', [])
+            
+        if features:
+            feat = features[0]
+            geom = feat.get('geometry', {})
+            rings = geom.get('rings', [])
+            
+            if rings:
+                # Compile ring coordinates to resolve a mean centroid
+                all_lons = []
+                all_lats = []
+                for ring in rings:
+                    for coord in ring:
+                        all_lons.append(coord[0]) # X
+                        all_lats.append(coord[1]) # Y
+                if all_lons and all_lats:
+                    mean_lon = sum(all_lons) / len(all_lons)
+                    mean_lat = sum(all_lats) / len(all_lats)
+                    
+                    attrs = feat.get('attributes', {})
+                    display_name = attrs.get('appellation', appellation_str)
+                    return mean_lat, mean_lon, f"Legal Lot Appellation: {display_name}"
+    except Exception as e:
+        logger.error(f"Failed to geocode Lot/DP via LINZ cadastral search: {e}")
+    return None, None, None
+
 def translate_zone_id_to_name(zone_id):
     metadata_url = (
         "https://services1.arcgis.com/n4yPwebTjJCmXB6W/"
@@ -772,19 +832,36 @@ with st.sidebar:
         help="Provide your personal OpenAI Key. If left blank, local variables and system secrets are checked."
     )
 
-address_input = st.text_input(
-    "Enter an Auckland address to analyze:", 
-    placeholder="e.g., 16 Laly Haddon Place"
+search_input = st.text_input(
+    "Enter an Auckland address OR Lot/DP number to analyze:", 
+    placeholder="e.g., 16 Laly Haddon Place OR Lot 3 DP 188975"
 ).strip()
 
-if address_input:
-    with st.spinner("Geocoding address..."):
-        lat, lon, full_address = geocode_auckland_address(address_input)
+if search_input:
+    lat, lon, full_address = None, None, None
+    
+    # Detect if the query matches structural characteristics of a LINZ Lot Appellation
+    is_legal = False
+    text_lower = search_input.lower()
+    if "dp" in text_lower or "lot" in text_lower or "section" in text_lower or "part lot" in text_lower:
+        is_legal = True
+        
+    if is_legal:
+        with st.spinner("Geocoding legal description via LINZ Primary Parcels..."):
+            lat, lon, full_address = geocode_legal_description(search_input)
+            if lat:
+                st.success(f"**Cadastral Match Found:** {full_address}")
+            else:
+                # Silent fallback to standard geocoding search in case it was a complex address string
+                with st.spinner("Cadastral search returned no features. Retrying as standard address..."):
+                    lat, lon, full_address = geocode_auckland_address(search_input)
+    else:
+        with st.spinner("Geocoding address..."):
+            lat, lon, full_address = geocode_auckland_address(search_input)
         
     if not lat:
-        st.error("Address not found inside New Zealand.")
+        st.error("Location / Property could not be matched inside New Zealand.")
     else:
-        st.success(f"**Standardized Address:** {full_address}")
         st.info(f"**Coordinates:** Lat {lat:.6f}, Lon {lon:.6f}")
         
         # MOVE THE MAP INSIDE AN EXPANDER TO PREVENT MOBILE TOUCH SCROLL TRAPPING
