@@ -5,7 +5,6 @@ import requests
 import pandas as pd
 import streamlit as st
 
-# Graceful check for the 'openai' library
 try:
     from openai import OpenAI
     OPENAI_AVAILABLE = True
@@ -16,14 +15,8 @@ except ImportError:
 # =====================================================================
 # CONFIGURATION & DATA STORAGE (8 FULLY INDEXED ZONES)
 # =====================================================================
-# Your OpenAI key is split to prevent Windows clipboard clipping
-OPENAI_API_KEY = (
-    "sk-proj-E4AjMSD74F94Kgu"
-    "7rjObEYGsMFye4Et6R1GBJoJsTB4UT"
-    "9jNhGQQ9eR1paq5NgWPu9kWlh8M19T3BlbkFJtoW_1_zly1jU0H3e"
-    "qniv4aOHq-eoivumqp34MLtYRCpaNztRgUzMlRMKwng-E2Sa7AC4Y"
-    "_gycA"
-)
+# Safe Public Fallback: Your private key is now loaded in secrets.
+OPENAI_API_KEY = None 
 
 AUP_KNOWLEDGE_BASE = {
     "Single House": {
@@ -215,7 +208,7 @@ AUP_KNOWLEDGE_BASE = {
 }
 
 # =====================================================================
-# 1. CORE HELPER FUNCTIONS
+# 1. GEOLOCATION & GEOTECHNICAL TOOLS
 # =====================================================================
 def geocode_auckland_address(address):
     clean = urllib.parse.quote(address + ', Auckland, NZ')
@@ -223,7 +216,7 @@ def geocode_auckland_address(address):
         f"https://nominatim.openstreetmap.org/search?"
         f"q={clean}&format=json&limit=1"
     )
-    headers = {'User-Agent': 'AUP_Feasibility_v3.3'}
+    headers = {'User-Agent': 'AUP_Feasibility_v3.4'}
     try:
         res = requests.get(url, headers=headers, timeout=5).json()
         if res:
@@ -316,6 +309,9 @@ def format_landslide_data(attributes):
         )
     return "\n".join(summary)
 
+# =====================================================================
+# 2. GIS & OVERLAY/PRECINCT/CADASTRAL ENGINES
+# =====================================================================
 def query_council_gis_layer(lat, lon, service_name):
     url = (
         f"https://services1.arcgis.com/n4yPwebTjJCmXB6W/"
@@ -340,6 +336,9 @@ def query_council_gis_layer(lat, lon, service_name):
     return []
 
 def query_unitary_overlays(lat, lon):
+    """
+    Queries environmental overlays.
+    """
     url = (
         "https://services1.arcgis.com/n4yPwebTjJCmXB6W/"
         "arcgis/rest/services/NonCouncil/"
@@ -375,6 +374,11 @@ def query_unitary_overlays(lat, lon):
     return found
 
 def query_unitary_precincts(lat, lon):
+    """
+    Performs an upgraded direct spatial query on Layer 7 (Precincts).
+    Uses a POST payload with outFields=* to fetch all properties,
+    safely bypassing mapping scale and field name variations.
+    """
     url = (
         "https://services1.arcgis.com/n4yPwebTjJCmXB6W/"
         "arcgis/rest/services/NonCouncil/"
@@ -388,9 +392,9 @@ def query_unitary_precincts(lat, lon):
     params = {
         'geometry': json.dumps(geom),
         'geometryType': 'esriGeometryPoint',
-        'inSR': '4326',
+        'inSR': '4326', # Bypasses Transverse Mercator defaults
         'spatialRel': 'esriSpatialRelIntersects',
-        'outFields': '*',
+        'outFields': '*',  # Capture all attributes dynamically
         'returnGeometry': 'false',
         'f': 'json'
     }
@@ -399,6 +403,8 @@ def query_unitary_precincts(lat, lon):
         res = requests.post(url, data=params, timeout=5).json()
         for f in res.get('features', []):
             attrs = f.get('attributes', {})
+            
+            # Dynamic attribute scanner
             val = None
             sub = None
             for k, v in attrs.items():
@@ -409,10 +415,13 @@ def query_unitary_precincts(lat, lon):
                 elif "SUB" in k_upper and "PRECINCT" in k_upper:
                     if v:
                         sub = v
+            
+            # Backups if scanner found no matches
             if not val:
                 val = attrs.get('PRECINCT') or attrs.get('NAME')
             if not sub:
                 sub = attrs.get('SUBPRECINCT')
+                
             if val:
                 p_name = str(val)
                 if (
@@ -427,6 +436,11 @@ def query_unitary_precincts(lat, lon):
     return precincts
 
 def query_nz_legal_description(lat, lon):
+    """
+    Performs a direct spatial boundary lookup against the unrestricted
+    public LINZ NZ Primary Parcels FeatureServer database.
+    Returns the appellation (Lot/DP), associated Title, and calculated m2.
+    """
     url = (
         "https://services.arcgis.com/xdsHIIxuCWByZiCB/"
         "arcgis/rest/services/LINZ_NZ_Primary_Parcels/"
@@ -530,7 +544,7 @@ def resolve_iwi_interests(lat, lon, address_str):
     return profile
 
 # =====================================================================
-# 2. OPENAI AGENT FEASIBILITY NARRATOR
+# 3. OPENAI AGENT FEASIBILITY NARRATOR
 # =====================================================================
 def ask_ai_planning_expert(
     api_key, address, zone, rules, hazards, 
@@ -596,7 +610,7 @@ def ask_ai_planning_expert(
         return f"[Agent Error] Could not generate AI brief: {e}"
 
 # =====================================================================
-# 3. STREAMLIT INTERFACE AND MAIN CONTROLLER
+# 4. STREAMLIT INTERFACE AND MAIN CONTROLLER
 # =====================================================================
 st.set_page_config(
     page_title="AUP Feasibility Agent", 
