@@ -5,6 +5,7 @@ import requests
 import pandas as pd
 import streamlit as st
 
+# Graceful check for the 'openai' library
 try:
     from openai import OpenAI
     OPENAI_AVAILABLE = True
@@ -15,8 +16,13 @@ except ImportError:
 # =====================================================================
 # CONFIGURATION & DATA STORAGE (8 FULLY INDEXED ZONES)
 # =====================================================================
-# Safe Public Fallback: Your private key is now loaded in secrets.
-OPENAI_API_KEY = None 
+OPENAI_API_KEY = (
+    "sk-proj-E4AjMSD74F94Kgu"
+    "7rjObEYGsMFye4Et6R1GBJoJsTB4UT"
+    "9jNhGQQ9eR1paq5NgWPu9kWlh8M19T3BlbkFJtoW_1_zly1jU0H3e"
+    "qniv4aOHq-eoivumqp34MLtYRCpaNztRgUzMlRMKwng-E2Sa7AC4Y"
+    "_gycA"
+)
 
 AUP_KNOWLEDGE_BASE = {
     "Single House": {
@@ -208,7 +214,7 @@ AUP_KNOWLEDGE_BASE = {
 }
 
 # =====================================================================
-# 1. GEOLOCATION & GEOTECHNICAL TOOLS
+# 1. CORE HELPER FUNCTIONS
 # =====================================================================
 def geocode_auckland_address(address):
     clean = urllib.parse.quote(address + ', Auckland, NZ')
@@ -216,7 +222,7 @@ def geocode_auckland_address(address):
         f"https://nominatim.openstreetmap.org/search?"
         f"q={clean}&format=json&limit=1"
     )
-    headers = {'User-Agent': 'AUP_Feasibility_v3.4'}
+    headers = {'User-Agent': 'AUP_Feasibility_v3.6'}
     try:
         res = requests.get(url, headers=headers, timeout=5).json()
         if res:
@@ -309,9 +315,6 @@ def format_landslide_data(attributes):
         )
     return "\n".join(summary)
 
-# =====================================================================
-# 2. GIS & OVERLAY/PRECINCT/CADASTRAL ENGINES
-# =====================================================================
 def query_council_gis_layer(lat, lon, service_name):
     url = (
         f"https://services1.arcgis.com/n4yPwebTjJCmXB6W/"
@@ -336,9 +339,6 @@ def query_council_gis_layer(lat, lon, service_name):
     return []
 
 def query_unitary_overlays(lat, lon):
-    """
-    Queries environmental overlays.
-    """
     url = (
         "https://services1.arcgis.com/n4yPwebTjJCmXB6W/"
         "arcgis/rest/services/NonCouncil/"
@@ -374,11 +374,6 @@ def query_unitary_overlays(lat, lon):
     return found
 
 def query_unitary_precincts(lat, lon):
-    """
-    Performs an upgraded direct spatial query on Layer 7 (Precincts).
-    Uses a POST payload with outFields=* to fetch all properties,
-    safely bypassing mapping scale and field name variations.
-    """
     url = (
         "https://services1.arcgis.com/n4yPwebTjJCmXB6W/"
         "arcgis/rest/services/NonCouncil/"
@@ -392,9 +387,9 @@ def query_unitary_precincts(lat, lon):
     params = {
         'geometry': json.dumps(geom),
         'geometryType': 'esriGeometryPoint',
-        'inSR': '4326', # Bypasses Transverse Mercator defaults
+        'inSR': '4326',
         'spatialRel': 'esriSpatialRelIntersects',
-        'outFields': '*',  # Capture all attributes dynamically
+        'outFields': '*',
         'returnGeometry': 'false',
         'f': 'json'
     }
@@ -403,8 +398,6 @@ def query_unitary_precincts(lat, lon):
         res = requests.post(url, data=params, timeout=5).json()
         for f in res.get('features', []):
             attrs = f.get('attributes', {})
-            
-            # Dynamic attribute scanner
             val = None
             sub = None
             for k, v in attrs.items():
@@ -415,13 +408,10 @@ def query_unitary_precincts(lat, lon):
                 elif "SUB" in k_upper and "PRECINCT" in k_upper:
                     if v:
                         sub = v
-            
-            # Backups if scanner found no matches
             if not val:
                 val = attrs.get('PRECINCT') or attrs.get('NAME')
             if not sub:
                 sub = attrs.get('SUBPRECINCT')
-                
             if val:
                 p_name = str(val)
                 if (
@@ -436,11 +426,6 @@ def query_unitary_precincts(lat, lon):
     return precincts
 
 def query_nz_legal_description(lat, lon):
-    """
-    Performs a direct spatial boundary lookup against the unrestricted
-    public LINZ NZ Primary Parcels FeatureServer database.
-    Returns the appellation (Lot/DP), associated Title, and calculated m2.
-    """
     url = (
         "https://services.arcgis.com/xdsHIIxuCWByZiCB/"
         "arcgis/rest/services/LINZ_NZ_Primary_Parcels/"
@@ -544,7 +529,7 @@ def resolve_iwi_interests(lat, lon, address_str):
     return profile
 
 # =====================================================================
-# 3. OPENAI AGENT FEASIBILITY NARRATOR
+# 2. OPENAI AGENT FEASIBILITY NARRATOR
 # =====================================================================
 def ask_ai_planning_expert(
     api_key, address, zone, rules, hazards, 
@@ -610,13 +595,57 @@ def ask_ai_planning_expert(
         return f"[Agent Error] Could not generate AI brief: {e}"
 
 # =====================================================================
-# 4. STREAMLIT INTERFACE AND MAIN CONTROLLER
+# 3. STREAMLIT INTERFACE AND MAIN CONTROLLER
 # =====================================================================
 st.set_page_config(
     page_title="AUP Feasibility Agent", 
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+# INJECT CSS TO HARMONIZE TYPOGRAPHY AND MAKE FONT SIZES BALANCED
+st.markdown("""
+<style>
+/* Unify typography scale & softened grey palette */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif !important;
+}
+h1 {
+    font-size: 2.1rem !important;
+    font-weight: 700 !important;
+    color: #1E293B !important;
+    margin-bottom: 0.5rem !important;
+}
+h2 {
+    font-size: 1.45rem !important;
+    font-weight: 600 !important;
+    color: #2F3E46 !important;
+    margin-top: 1.5rem !important;
+    margin-bottom: 0.8rem !important;
+    border-bottom: 1px solid #E2E8F0;
+    padding-bottom: 0.4rem;
+}
+h3 {
+    font-size: 1.15rem !important;
+    font-weight: 600 !important;
+    color: #4A5568 !important;
+    margin-top: 1.2rem !important;
+    margin-bottom: 0.6rem !important;
+}
+p, li, span, label, div {
+    font-size: 0.95rem !important;
+    line-height: 1.55 !important;
+    color: #334155 !important;
+}
+/* Style metrics/values to look unified with standard text */
+div[data-testid="stMetricValue"] {
+    font-size: 1.5rem !important;
+    font-weight: 700 !important;
+    color: #0F172A !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 st.title("Auckland Unitary Plan Agent")
 st.markdown("Zoning, legal, and hazard data.")
@@ -641,12 +670,13 @@ if address_input:
     if not lat:
         st.error("Address not found inside New Zealand.")
     else:
-        st.subheader("Property Location")
-        map_df = pd.DataFrame({'lat': [lat], 'lon': [lon]})
-        st.map(map_df, zoom=17, size=20)
-        
         st.success(f"**Standardized Address:** {full_address}")
         st.info(f"**Coordinates:** Lat {lat:.6f}, Lon {lon:.6f}")
+        
+        # MOVE THE MAP INSIDE AN EXPANDER TO PREVENT MOBILE TOUCH SCROLL TRAPPING
+        with st.expander("🗺️ View Interactive Map Location", expanded=False):
+            map_df = pd.DataFrame({'lat': [lat], 'lon': [lon]})
+            st.map(map_df, zoom=17, size=20)
         
         with st.spinner("Gathering live Council & LINZ GIS records..."):
             zone_data = query_council_gis_layer(lat, lon, "Unitary_Plan_Base_Zone")
@@ -787,9 +817,10 @@ if address_input:
             st.write(f"**Applicable Settlement Acts:** {', '.join(iwi_profile['acts'])}")
             st.write(f"**Statutory Iwi consulted:** {', '.join(iwi_profile['iwi_list'])}")
             
+            # AI Report Generator (With Manual Synthesis Button)
             st.header("AI Town Planning Synthesis")
             
-            # API Key Resolution
+            # Dynamic API key resolution
             api_key_to_use = None
             if user_api_key:
                 api_key_to_use = user_api_key
