@@ -130,7 +130,7 @@ AUP_KNOWLEDGE_BASE = {
         "side_rear": "6m",
         "coverage": "20% or 400m² (whichever is less)",
         "impervious": "10% or 400m² (whichever is less)",
-        "desc": "Spacious residential on urban peripheries.",
+        "desc": "Spacious residential on urban fringes.",
         "activities": {
             "1 Standalone Dwelling": (
                 "Permitted (P)"
@@ -287,7 +287,9 @@ def format_landslide_data(attributes):
         f"- **Geology:** {zone}",
         f"- **Score:** {score:.1f}",
         f"- **Landslides:** {count}",
-        "", # Spacer before guidance header
+        "",
+        "<div style='height: 1.0rem;'></div>",
+        "",
         "**Town Planning Guidance Note:**"
     ]
     if sus.lower() in ['low', 'very low']:
@@ -486,7 +488,7 @@ def resolve_iwi_interests(lat, lon, address_str):
             "district": "Waitākere / West Auckland",
             "acts": ["Te Kawerau ā Maki Claims Settlement Act 2015"],
             "iwi_list": [
-                "Te Kawerau ā Maki (Primary local)", 
+                "Te Kawerau ā Maki", 
                 "Ngāti Whātua", 
                 "Te Ākitai Waiohua", 
                 "Ngāti Te Ata Waiohua"
@@ -879,19 +881,21 @@ if address_input:
                 "### Environmental Hazards",
                 f"- **Overland Flow Paths:** {hazards['overland_flow']}",
                 "",
+                "<div style='height: 1.0rem;'></div>", # GAP 1: OVERLAND TO GEOTECH
+                "",
                 "**Geotechnical Assessment:**",
                 f"{hazards['landslide']}",
-                "", # MANDATORY BLANK LINE BEFORE HTML SPACER
-                "<div style='height: 1.2rem;'></div>",
-                "", # MANDATORY BLANK LINE AFTER HTML SPACER
+                "", 
+                "<div style='height: 1.0rem;'></div>", # GAP 3: GEOTECH TO IWI
+                "", 
                 "### Mana Whenua & Treaty Settlements",
                 f"- **Mana Whenua Site Status:** {mana_status}",
                 f"- **Appendix 21 District:** {iwi_profile['district']}",
                 f"- **Settlement Acts:** {', '.join(iwi_profile['acts'])}",
                 f"- **Statutory Iwi:** {', '.join(iwi_profile['iwi_list'])}",
-                "", # MANDATORY BLANK LINE BEFORE HTML SPACER
-                "<div style='height: 1.2rem;'></div>",
-                "" # MANDATORY BLANK LINE AFTER HTML SPACER
+                "", 
+                "<div style='height: 1.0rem;'></div>", # Spacer before AI generator
+                "" 
             ]
             # Render Column 2 details as a single compiled Markdown block
             st.markdown(
