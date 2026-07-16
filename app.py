@@ -16,6 +16,7 @@ except ImportError:
 # =====================================================================
 # CONFIGURATION & DATA STORAGE (8 FULLY INDEXED ZONES)
 # =====================================================================
+# Your OpenAI key is split to prevent Windows clipboard clipping
 OPENAI_API_KEY = (
     "sk-proj-E4AjMSD74F94Kgu"
     "7rjObEYGsMFye4Et6R1GBJoJsTB4UT"
@@ -603,46 +604,72 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# INJECT CSS TO HARMONIZE TYPOGRAPHY AND MAKE FONT SIZES BALANCED
+# INJECT ULTRA-BOLD WHITE HEADINGS AND BRIGHT OFF-WHITE BODY (DARK THEME)
 st.markdown("""
 <style>
-/* Unify typography scale & softened grey palette */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-html, body, [class*="css"] {
+/* Unify typography scale & dark background palette */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+html, body, [class*="css"], .stApp {
     font-family: 'Inter', sans-serif !important;
+    background-color: #121212 !important; /* Deep dark grey */
+}
+/* Force all headings to be Ultra-Bold and Crisp White */
+h1, h2, h3, .stHeading, 
+[data-testid="stMarkdownContainer"] h1, 
+[data-testid="stMarkdownContainer"] h2, 
+[data-testid="stMarkdownContainer"] h3 {
+    font-weight: 800 !important; /* Ultra-bold */
+    color: #FFFFFF !important;   /* Crisp Solid White */
 }
 h1 {
     font-size: 2.1rem !important;
-    font-weight: 700 !important;
-    color: #1E293B !important;
     margin-bottom: 0.5rem !important;
 }
 h2 {
     font-size: 1.45rem !important;
-    font-weight: 600 !important;
-    color: #2F3E46 !important;
     margin-top: 1.5rem !important;
     margin-bottom: 0.8rem !important;
-    border-bottom: 1px solid #E2E8F0;
+    border-bottom: 2px solid #FFFFFF; /* White underline */
     padding-bottom: 0.4rem;
 }
 h3 {
     font-size: 1.15rem !important;
-    font-weight: 600 !important;
-    color: #4A5568 !important;
     margin-top: 1.2rem !important;
     margin-bottom: 0.6rem !important;
 }
-p, li, span, label, div {
+/* Keep body text regular weight (400) and crisp off-white for contrast */
+p, li, span, label, div, td, th {
     font-size: 0.95rem !important;
     line-height: 1.55 !important;
-    color: #334155 !important;
+    font-weight: 400 !important; /* Regular weight */
+    color: #F8FAFC !important;   /* Bright Slate White */
 }
-/* Style metrics/values to look unified with standard text */
+/* Target bolded markdown elements */
+strong {
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+}
+/* Standardize metrics/values to use ultra-bold white */
 div[data-testid="stMetricValue"] {
     font-size: 1.5rem !important;
-    font-weight: 700 !important;
-    color: #0F172A !important;
+    font-weight: 800 !important;
+    color: #FFFFFF !important;   /* Crisp Solid White */
+}
+div[data-testid="stMetricLabel"] p {
+    color: #F8FAFC !important;
+}
+/* Style Streamlit expander, sidebar, and inputs to match dark mode */
+div[data-testid="stExpander"] {
+    background-color: #1E1E1E !important;
+    border: 1px solid #333333 !important;
+}
+div[class*="sidebar"] {
+    background-color: #1E1E1E !important;
+}
+input {
+    background-color: #2D2D2D !important;
+    color: #FFFFFF !important;
+    border: 1px solid #444444 !important;
 }
 </style>
 """, unsafe_allow_html=True)
