@@ -208,27 +208,4 @@ if address_input:
             st.write(f"**Applicable Settlement Acts:** {', '.join(iwi_profile['acts'])}")
             st.write(f"**Statutory Iwi consulted:** {', '.join(iwi_profile['iwi_list'])}")
             
-            # AI Report Generator Button
-            st.header("AI Town Planning Synthesis")
-            
-            # Dynamic API key resolution
-            api_key_to_use = None
-            if user_api_key:
-                api_key_to_use = user_api_key
-            elif "OPENAI_API_KEY" in st.secrets:
-                api_key_to_use = st.secrets["OPENAI_API_KEY"]
-            else:
-                api_key_to_use = OPENAI_API_KEY
-            
-            if not api_key_to_use:
-                st.warning("Please configure an OpenAI API key.")
-            else:
-                if st.button("Synthesize Planning Report"):
-                    with st.spinner("Analyzing parameters..."):
-                        report = ask_ai_planning_expert(
-                            api_key_to_use, full_address, zone_name, rules or {}, 
-                            hazards, mana_status, iwi_profile, overlays, precincts,
-                            legal_desc, title_no, lot_size
-                        )
-                        st.subheader("AI Planner's Report")
-                        st.markdown(report)
+            # AI Report Generator (With Manual Synthesis Button)
