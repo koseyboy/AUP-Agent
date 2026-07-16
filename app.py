@@ -270,7 +270,7 @@ def translate_zone_id_to_name(zone_id):
 
 def format_landslide_data(attributes):
     if not attributes:
-        return "Low / No landslide susceptibility recorded."
+        return "- *Low / No landslide susceptibility recorded.*"
     
     sus = attributes.get('SusceptibilityValue', 'Unknown')
     conf = attributes.get('Confidence', 'Unknown')
@@ -281,38 +281,38 @@ def format_landslide_data(attributes):
     count = attributes.get('LandslideCount', 0)
     
     summary = [
-        f"Risk Rating: {sus.upper()}",
-        f"Confidence:  {conf}",
-        f"Slope:       {slope:.1f}° facing {aspect}",
-        f"Geology:     {zone}",
-        f"Score:       {score:.1f}",
-        f"Landslides:  {count}"
+        f"- **Risk Rating:** {sus.upper()}",
+        f"- **Confidence:** {conf}",
+        f"- **Slope:** {slope:.1f}° facing {aspect}",
+        f"- **Geology:** {zone}",
+        f"- **Score:** {score:.1f}",
+        f"- **Landslides:** {count}"
     ]
-    summary.append("\n  [Town Planning Guidance Note]:")
+    summary.append("\n**Town Planning Guidance Note:**")
     if sus.lower() in ['low', 'very low']:
         summary.append(
-            "  - 'Low/Very Low' rating is favorable. "
-            "Standard foundations fine."
+            "- *'Low/Very Low' rating is favorable. "
+            "Standard foundations fine.*"
         )
         summary.append(
-            "  - CPEng stability letter "
-            "may be requested by council."
+            "- *CPEng stability letter "
+            "may be requested by council.*"
         )
     elif sus.lower() in ['medium', 'moderate']:
         summary.append(
-            "  - 'Medium' rating indicates soil movement risk."
+            "- *'Medium' rating indicates soil movement risk.*"
         )
         summary.append(
-            "  - GIR Report and specialized foundations required."
+            "- *GIR Report and specialized foundations required.*"
         )
     elif sus.lower() in ['high', 'very high']:
         summary.append(
-            "  - WARNING: High landslide risk. "
-            "Structural retaining required."
+            "- *WARNING: High landslide risk. "
+            "Structural retaining required.*"
         )
         summary.append(
-            "  - Natural Hazards Resource Consent "
-            "(Chapter E36) is triggered."
+            "- *Natural Hazards Resource Consent "
+            "(Chapter E36) is triggered.*"
         )
     return "\n".join(summary)
 
@@ -604,7 +604,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# INJECT COMPACT, HIGH-CONTRAST DARK MODE CSS 
+# INJECT COMPACT, STATIC-RENDERING, HIGH-CONTRAST DARK MODE CSS
 st.markdown("""
 <style>
 /* Base configuration */
@@ -624,9 +624,14 @@ h1, h2, h3, .stHeading,
     margin-bottom: 0.4rem !important; /* Tight spacing below */
     margin-top: 1.0rem !important;
 }
-h1 {
-    font-size: 3.2rem !important; /* Huge prominent app title */
+/* Main App Header Style (Matched with custom HTML) */
+.custom-app-header {
+    font-size: 3.2rem !important;
+    font-weight: 800 !important;
+    color: #FFFFFF !important;
+    line-height: 1.15 !important;
     margin-bottom: 0.6rem !important;
+    margin-top: 0.5rem !important;
 }
 h2 {
     font-size: 1.65rem !important; /* Larger section header */
@@ -657,17 +662,6 @@ strong {
     color: #FFFFFF !important;
     font-weight: 700 !important;
 }
-/* Standardize metrics/values to use larger ultra-bold white */
-div[data-testid="stMetricValue"] {
-    font-size: 1.7rem !important;
-    font-weight: 800 !important;
-    color: #FFFFFF !important;   /* Crisp Solid White */
-}
-div[data-testid="stMetricLabel"] p {
-    color: #F8FAFC !important;
-    font-size: 1.05rem !important;
-    margin-bottom: 0.1rem !important;
-}
 /* Style Streamlit expander, sidebar, and inputs to match dark mode */
 div[data-testid="stExpander"] {
     background-color: #1E1E1E !important;
@@ -684,7 +678,11 @@ input {
 </style>
 """, unsafe_allow_html=True)
 
-st.title("Auckland Unitary Plan Site Info")
+# STATIC HTML HEADER TO ELIMINATE RE-RENDERING FLASHING
+st.markdown(
+    "<h1 class='custom-app-header'>Auckland Unitary Plan Site Info</h1>", 
+    unsafe_allow_html=True
+)
 st.markdown("Zoning, legal, and hazard data.")
 
 with st.sidebar:
@@ -804,55 +802,75 @@ if address_input:
         col1, col2 = st.columns([1, 1])
         
         with col1:
-            st.header("Raw Property Details")
-            st.metric(label="Official Zoning", value=zone_name)
+            raw_details = [
+                "## Raw Property Details",
+                f"- **Official Zoning:** {zone_name}",
+                "",
+                "### LINZ Cadastral Details",
+                f"- **Legal Description:** {legal_desc}",
+                f"- **Certificate of Title:** {title_no}",
+                f"- **Lot Size:** {lot_size}",
+                "",
+                "### Base Development Rules"
+            ]
             
-            st.subheader("LINZ Cadastral Details")
-            st.write(f"**Legal Description:** {legal_desc}")
-            st.write(f"**Certificate of Title:** {title_no}")
-            st.write(f"**Lot Size:** {lot_size}")
-            
-            st.subheader("Base Development Rules")
             if rules:
-                st.write(f"**Section:** {rules['chapter']}")
-                st.write(f"**Max Height Limit:** {rules['height']}")
-                st.write(f"**HIRB Boundary Limit:** {rules['hirb']}")
-                st.write(f"**Front Yard Setback:** {rules['front']}")
-                st.write(f"**Side/Rear Setback:** {rules['side_rear']}")
-                st.write(f"**Building Coverage:** {rules['coverage']}")
-                st.write(f"**Impervious Coverage:** {rules['impervious']}")
-                st.write(f"**Zone Objective:** {rules['desc']}")
-                
-                st.write("**Activity Status Table:**")
+                raw_details.extend([
+                    f"- **Section:** {rules['chapter']}",
+                    f"- **Max Height Limit:** {rules['height']}",
+                    f"- **HIRB Boundary Limit:** {rules['hirb']}",
+                    f"- **Front Yard Setback:** {rules['front']}",
+                    f"- **Side/Rear Setback:** {rules['side_rear']}",
+                    f"- **Building Coverage:** {rules['coverage']}",
+                    f"- **Impervious Coverage:** {rules['impervious']}",
+                    f"- **Zone Objective:** {rules['desc']}",
+                    "",
+                    "#### **Activity Status Table (AUP Activity Table):**",
+                ])
                 for act, status in rules['activities'].items():
-                    st.write(f"  • {act}: `{status}`")
+                    raw_details.append(f"  * **{act}:** `{status}`")
             else:
-                st.warning("Zoning rules are not pre-indexed.")
+                raw_details.append(
+                    "*Zoning rules are not pre-indexed for this zone type.*"
+                )
                 
-            st.subheader("Precincts & Overlays")
+            raw_details.append("\n### Precincts & Overlays")
             if precincts:
                 for p in precincts:
-                    st.success(f"**Precinct:** {p}")
+                    raw_details.append(f"- **Precinct:** `{p}`")
             else:
-                st.write("• No Precincts Detected.")
+                raw_details.append("- No Precincts Detected.")
                 
             if overlays:
                 for o in overlays:
-                    st.warning(f"**Overlay:** {o['layer']} ({o['val']})")
+                    raw_details.append(
+                        f"- **Overlay:** `{o['layer']}` ({o['val']})"
+                    )
             else:
-                st.write("• No Special Overlays Detected.")
+                raw_details.append("- No Special Overlays Detected.")
+                
+            # Render Column 1 as a single beautifully compiled Markdown block
+            st.markdown("\n".join(raw_details))
 
         with col2:
-            st.header("Geotech, Hazards & Cultural")
-            st.subheader("Environmental Hazards")
-            st.write(f"**Overland Flow Paths:** {hazards['overland_flow']}")
-            st.text(f"Geotechnical Assessment:\n{hazards['landslide']}")
-            
-            st.subheader("Mana Whenua & Treaty Settlements")
-            st.write(f"**Mana Whenua Site Status:** {mana_status}")
-            st.write(f"**AUP Appendix 21 District:** {iwi_profile['district']}")
-            st.write(f"**Applicable Settlement Acts:** {', '.join(iwi_profile['acts'])}")
-            st.write(f"**Statutory Iwi consulted:** {', '.join(iwi_profile['iwi_list'])}")
+            col2_details = [
+                "## Geotech, Hazards & Cultural",
+                "",
+                "### Environmental Hazards",
+                f"- **Overland Flow Paths:** {hazards['overland_flow']}",
+                "",
+                "**Geotechnical Assessment:**",
+                f"{hazards['landslide']}",
+                "",
+                "### Mana Whenua & Treaty Settlements",
+                f"- **Mana Whenua Site Status:** {mana_status}",
+                f"- **Appendix 21 District:** {iwi_profile['district']}",
+                f"- **Settlement Acts:** {', '.join(iwi_profile['acts'])}",
+                f"- **Statutory Iwi:** {', '.join(iwi_profile['iwi_list'])}",
+                ""
+            ]
+            # Render Column 2 details as a single compiled Markdown block
+            st.markdown("\n".join(col2_details))
             
             # AI Report Generator (With Manual Synthesis Button)
             st.header("AI Town Planning Synthesis")
