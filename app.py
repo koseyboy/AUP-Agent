@@ -130,7 +130,7 @@ AUP_KNOWLEDGE_BASE = {
         "side_rear": "6m",
         "coverage": "20% or 400m² (whichever is less)",
         "impervious": "10% or 400m² (whichever is less)",
-        "desc": "Spacious residential on urban fringes.",
+        "desc": "Spacious residential on urban peripheries.",
         "activities": {
             "1 Standalone Dwelling": (
                 "Permitted (P)"
@@ -604,7 +604,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# INJECT CSS FOR SPACIOUS LINE SPACING AND GREATER MOBILE FONT SIZES
+# INJECT COMPACT, HIGH-CONTRAST DARK MODE CSS 
 st.markdown("""
 <style>
 /* Base configuration */
@@ -613,37 +613,44 @@ html, body, [class*="css"], .stApp {
     font-family: 'Inter', sans-serif !important;
     background-color: #121212 !important; /* Deep dark grey */
 }
-/* Force headings to be Ultra-Bold, Crisp White, and well spaced */
+/* Force headings to be Ultra-Bold, Crisp White, and tight spacing */
 h1, h2, h3, .stHeading, 
 [data-testid="stMarkdownContainer"] h1, 
 [data-testid="stMarkdownContainer"] h2, 
 [data-testid="stMarkdownContainer"] h3 {
     font-weight: 800 !important; /* Ultra-bold */
     color: #FFFFFF !important;   /* Crisp Solid White */
-    line-height: 1.3 !important; /* Unified heading line-height */
-    margin-bottom: 0.8rem !important;
+    line-height: 1.15 !important; /* Extremely tight heading line-height */
+    margin-bottom: 0.4rem !important; /* Tight spacing below */
+    margin-top: 1.0rem !important;
 }
 h1 {
-    font-size: 2.4rem !important; /* Larger main title */
-    margin-bottom: 1.0rem !important;
+    font-size: 3.2rem !important; /* Huge prominent app title */
+    margin-bottom: 0.6rem !important;
 }
 h2 {
     font-size: 1.65rem !important; /* Larger section header */
-    margin-top: 1.8rem !important;
     border-bottom: 2px solid #FFFFFF; /* White underline */
-    padding-bottom: 0.5rem;
+    padding-bottom: 0.3rem;
 }
 h3 {
     font-size: 1.25rem !important; /* Larger subheader */
-    margin-top: 1.4rem !important;
 }
-/* Unified larger body text & standard spacious line-height */
+/* Unified larger body text with tight normal line-height and margins */
 p, li, span, label, div, td, th {
-    font-size: 1.05rem !important; /* Larger readable body font */
-    line-height: 1.65 !important;  /* Uniform line spacing */
-    font-weight: 400 !important;   /* Regular weight */
-    color: #F8FAFC !important;     /* Bright Slate White */
-    margin-bottom: 0.6rem !important; /* Consistent block margins */
+    font-size: 1.05rem !important;    /* Larger readable body font */
+    line-height: 1.35 !important;     /* Tight standard line-spacing */
+    font-weight: 400 !important;      /* Regular weight */
+    color: #F8FAFC !important;        /* Bright Slate White */
+    margin-bottom: 0.25rem !important; /* Tight block margins */
+}
+/* Ensure lists are equally tight */
+ul, ol {
+    margin-bottom: 0.25rem !important;
+    padding-left: 1.2rem !important;
+}
+li {
+    margin-bottom: 0.15rem !important;
 }
 /* Target bolded markdown elements */
 strong {
@@ -659,6 +666,7 @@ div[data-testid="stMetricValue"] {
 div[data-testid="stMetricLabel"] p {
     color: #F8FAFC !important;
     font-size: 1.05rem !important;
+    margin-bottom: 0.1rem !important;
 }
 /* Style Streamlit expander, sidebar, and inputs to match dark mode */
 div[data-testid="stExpander"] {
