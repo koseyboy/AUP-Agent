@@ -290,7 +290,7 @@ def format_landslide_data(attributes):
         "",
         "<div style='height: 1.0rem;'></div>", # GAP 5: LANDSLIDES TO GUIDANCE HEADER
         "",
-        "**Town Planning Guidance Note:**",
+        "Town Planning Guidance Note:", # Unbolded
         "",
         "<div style='height: 1.0rem;'></div>", # GAP 6: GUIDANCE HEADER TO NOTE LIST
         ""
@@ -869,7 +869,11 @@ if address_input:
                     "",
                     "<div style='height: 1.0rem;'></div>", # GAP 7: LIST TO TABLE HEADER
                     "",
-                    "#### **Activity Status Table (AUP Activity Table):**",
+                    # Split to prevent Windows clipboard wrapping issues
+                    (
+                        "#### Activity Status Table "
+                        "(AUP Activity Table):"
+                    ),
                     "",
                     "<div style='height: 1.0rem;'></div>", # GAP 8: HEADER TO TABLE
                     ""
@@ -878,7 +882,7 @@ if address_input:
                     raw_details.append(f"  * **{act}:** `{status}`")
             else:
                 raw_details.append(
-                    "- *Zoning rules are not pre-indexed for this zone type.*"
+                    "*Zoning rules are not pre-indexed for this zone type.*"
                 )
                 
             raw_details.extend([
@@ -924,7 +928,7 @@ if address_input:
                 "",
                 "<div style='height: 1.0rem;'></div>", # GAP 3: FLOW PATH TO ASSESS HEADER
                 "",
-                "**Geotechnical Assessment:**",
+                "Geotechnical Assessment:", # Unbolded
                 "",
                 "<div style='height: 1.0rem;'></div>", # GAP 4: ASSESS HEADER TO DATA LIST
                 "",
