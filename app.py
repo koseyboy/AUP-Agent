@@ -613,7 +613,7 @@ html, body, [class*="css"], .stApp {
     font-family: 'Inter', sans-serif !important;
     background-color: #121212 !important; /* Deep dark grey */
 }
-/* Force all headings to be Ultra-Bold, Crisp White, and tight spacing */
+/* Force headings to be Ultra-Bold, Crisp White, and tight spacing */
 h1, h2, h3, .stHeading, 
 [data-testid="stMarkdownContainer"] h1, 
 [data-testid="stMarkdownContainer"] h2, 
@@ -828,15 +828,32 @@ if address_input:
         
         with col1:
             raw_details = [
-                "## Raw Property Details",
-                f"- **Official Zoning:** **{zone_name}**",
+                "## Property Details",
+                "",
+                "<div style='height: 1.0rem;'></div>", # GAP 1: MAIN TO SUBHEADER
+                "",
+                "### AUP Zone",
+                "",
+                "<div style='height: 1.0rem;'></div>", # GAP 2: SUBHEADER TO LIST
+                "",
+                f"- **{zone_name}**",
+                "",
+                "<div style='height: 1.0rem;'></div>", # GAP 3: LIST TO CADASTRAL HEADER
                 "",
                 "### LINZ Cadastral Details",
+                "",
+                "<div style='height: 1.0rem;'></div>", # GAP 4: HEADER TO LIST
+                "",
                 f"- **Legal Description:** {legal_desc}",
                 f"- **Certificate of Title:** {title_no}",
                 f"- **Lot Size:** {lot_size}",
                 "",
-                "### Base Development Rules"
+                "<div style='height: 1.0rem;'></div>", # GAP 5: LIST TO RULES HEADER
+                "",
+                "### Base Development Rules",
+                "",
+                "<div style='height: 1.0rem;'></div>", # GAP 6: HEADER TO RULES LIST
+                ""
             ]
             
             if rules:
@@ -850,16 +867,29 @@ if address_input:
                     f"- **Impervious Coverage:** {rules['impervious']}",
                     f"- **Zone Objective:** {rules['desc']}",
                     "",
+                    "<div style='height: 1.0rem;'></div>", # GAP 7: LIST TO TABLE HEADER
+                    "",
                     "#### **Activity Status Table (AUP Activity Table):**",
+                    "",
+                    "<div style='height: 1.0rem;'></div>", # GAP 8: HEADER TO TABLE
+                    ""
                 ])
                 for act, status in rules['activities'].items():
                     raw_details.append(f"  * **{act}:** `{status}`")
             else:
                 raw_details.append(
-                    "*Zoning rules are not pre-indexed for this zone type.*"
+                    "- *Zoning rules are not pre-indexed for this zone type.*"
                 )
                 
-            raw_details.append("\n### Precincts & Overlays")
+            raw_details.extend([
+                "",
+                "<div style='height: 1.0rem;'></div>", # GAP 9: TABLE TO PRECINCTS HEADER
+                "",
+                "### Precincts & Overlays",
+                "",
+                "<div style='height: 1.0rem;'></div>", # GAP 10: HEADER TO LIST
+                ""
+            ])
             if precincts:
                 for p in precincts:
                     raw_details.append(f"- **Precinct:** `{p}`")
@@ -884,7 +914,7 @@ if address_input:
             col2_details = [
                 "## Geotech, Hazards & Cultural",
                 "",
-                "<div style='height: 1.0rem;'></div>", # GAP 1: MAIN HEADER TO SUBHEADER
+                "<div style='height: 1.0rem;'></div>", # GAP 1: MAIN TO SUBHEADER
                 "",
                 "### Environmental Hazards",
                 "",
@@ -896,7 +926,7 @@ if address_input:
                 "",
                 "**Geotechnical Assessment:**",
                 "",
-                "<div style='height: 1.0rem;'></div>", # GAP 4: ASSESS HEADER TO LIST
+                "<div style='height: 1.0rem;'></div>", # GAP 4: ASSESS HEADER TO DATA LIST
                 "",
                 f"{hazards['landslide']}",
                 "", 
