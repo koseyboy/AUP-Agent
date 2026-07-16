@@ -1028,7 +1028,7 @@ if search_input:
                         "source": geojson_layer,
                         "type": "line",
                         "color": "#FFCC00", # High-contrast Vivid Yellow Outline
-                        "width": 3
+                        "line": {"width": 3}
                     })
                 
                 fig.update_layout(
