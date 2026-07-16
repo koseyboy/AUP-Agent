@@ -18,6 +18,14 @@ except ImportError:
     OPENAI_AVAILABLE = False
     OpenAI = None
 
+# Graceful check for the 'plotly' library
+try:
+    import plotly.express as px
+    PLOTLY_AVAILABLE = True
+except ImportError:
+    PLOTLY_AVAILABLE = False
+    px = None
+
 # =====================================================================
 # CONFIGURATION & DATA STORAGE (13 FULLY INDEXED ZONES)
 # =====================================================================
@@ -258,7 +266,7 @@ def geocode_auckland_address(address):
 def geocode_legal_description(appellation_str):
     """
     Queries the LINZ Primary Parcels layer directly to find the centroid 
-    coordinates of a parcel from a Lot/DP legal description.
+    coordinates of a parcel from a Lot/DP legal description. Returns rings.
     """
     url = (
         "https://services.arcgis.com/xdsHIIxuCWByZiCB/"
@@ -310,10 +318,10 @@ def geocode_legal_description(appellation_str):
                     
                     attrs = feat.get('attributes', {})
                     display_name = attrs.get('appellation', appellation_str)
-                    return mean_lat, mean_lon, f"Legal Lot Appellation: {display_name}"
+                    return mean_lat, mean_lon, f"Legal Lot Appellation: {display_name}", rings
     except Exception as e:
         logger.error(f"Failed to geocode Lot/DP via LINZ cadastral search: {e}")
-    return None, None, None
+    return None, None, None, []
 
 def translate_zone_id_to_name(zone_id):
     metadata_url = (
@@ -517,7 +525,8 @@ def query_nz_legal_description(lat, lon):
         'inSR': '4326',
         'spatialRel': 'esriSpatialRelIntersects',
         'outFields': 'appellation,titles,calc_area',
-        'returnGeometry': 'false',
+        'returnGeometry': 'true', # Retrieve geometry polygon path
+        'outSR': '4326',
         'f': 'json'
     }
     try:
@@ -526,7 +535,8 @@ def query_nz_legal_description(lat, lon):
         res = response.json()
         features = res.get('features', [])
         if features:
-            attrs = features[0].get('attributes', {})
+            feat = features[0]
+            attrs = feat.get('attributes', {})
             legal = attrs.get('appellation') or "Unknown Lot/DP"
             title = attrs.get('titles') or "Unknown Title"
             area_val = attrs.get('calc_area')
@@ -536,10 +546,13 @@ def query_nz_legal_description(lat, lon):
                     area_str = f"{int(float(area_val)):,} m²"
                 except Exception:
                     area_str = str(area_val)
-            return legal, title, area_str
+                    
+            geom_data = feat.get('geometry', {})
+            rings = geom_data.get('rings', [])
+            return legal, title, area_str, rings
     except Exception as e:
         logger.error(f"Error querying LINZ cadastral parcel: {e}")
-    return "Unknown Lot/DP", "Unknown Title", "Unknown"
+    return "Unknown Lot/DP", "Unknown Title", "Unknown", []
 
 def resolve_iwi_interests(lat, lon, address_str):
     profile = {
@@ -839,6 +852,7 @@ search_input = st.text_input(
 
 if search_input:
     lat, lon, full_address = None, None, None
+    search_rings = []
     
     # Detect if the query matches structural characteristics of a LINZ Lot Appellation
     is_legal = False
@@ -848,51 +862,23 @@ if search_input:
         
     if is_legal:
         with st.spinner("Geocoding legal description via LINZ Primary Parcels..."):
-            lat, lon, full_address = geocode_legal_description(search_input)
+            lat, lon, full_address, search_rings = geocode_legal_description(search_input)
             if lat:
                 st.success(f"**Cadastral Match Found:** {full_address}")
             else:
                 # Silent fallback to standard geocoding search in case it was a complex address string
                 with st.spinner("Cadastral search returned no features. Retrying as standard address..."):
                     lat, lon, full_address = geocode_auckland_address(search_input)
+                    search_rings = []
     else:
         with st.spinner("Geocoding address..."):
             lat, lon, full_address = geocode_auckland_address(search_input)
+            search_rings = []
         
     if not lat:
         st.error("Location / Property could not be matched inside New Zealand.")
     else:
         st.info(f"**Coordinates:** Lat {lat:.6f}, Lon {lon:.6f}")
-        
-        # MOVE THE MAP INSIDE AN EXPANDER TO PREVENT MOBILE TOUCH SCROLL TRAPPING
-        with st.expander(
-            "🗺️ View Interactive Map Location", 
-            expanded=False
-        ):
-            map_df = pd.DataFrame({'lat': [lat], 'lon': [lon]})
-            
-            # IMPLEMENT PLOTLY EXPRESS SATELLITE BASMAP INTERFACE
-            import plotly.express as px
-            fig = px.scatter_mapbox(
-                map_df, 
-                lat="lat", 
-                lon="lon", 
-                zoom=17,
-                size_max=15
-            )
-            fig.update_layout(
-                mapbox_style="white-bg",
-                mapbox_layers=[{
-                    "below": 'traces',
-                    "sourcetype": "raster",
-                    "sourceattribution": "Esri World Imagery",
-                    "source": [
-                        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                    ]
-                }]
-            )
-            fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=400, showlegend=False)
-            st.plotly_chart(fig, use_container_width=True)
         
         with st.spinner("Gathering live Council & LINZ GIS records..."):
             zone_data = query_council_gis_layer(lat, lon, "Unitary_Plan_Base_Zone")
@@ -904,7 +890,7 @@ if search_input:
                 else:
                     zone_name = raw_zone
                     
-            legal_desc, title_no, lot_size = query_nz_legal_description(lat, lon)
+            legal_desc, title_no, lot_size, query_rings = query_nz_legal_description(lat, lon)
             flow_data = query_council_gis_layer(lat, lon, "Overland_Flow_Paths")
             landslide_data = query_council_gis_layer(
                 lat, lon, 
@@ -916,6 +902,9 @@ if search_input:
             )
             overlays = query_unitary_overlays(lat, lon)
             precincts = query_unitary_precincts(lat, lon)
+            
+            # Formulate the correct polygon outline boundary layer
+            parcel_rings = query_rings if query_rings else search_rings
             
             if not precincts and "matakana" in full_address.lower():
                 if "single house" in zone_name.lower():
@@ -990,6 +979,67 @@ if search_input:
                         rules["impervious"] = (
                             "15% max [Overridden by Matakana 1 Precinct]"
                         )
+
+        # MOVE THE MAP INSIDE AN EXPANDER TO PREVENT MOBILE TOUCH SCROLL TRAPPING
+        with st.expander(
+            "🗺️ View Interactive Map Location", 
+            expanded=False
+        ):
+            map_df = pd.DataFrame({'lat': [lat], 'lon': [lon]})
+            
+            # IMPLEMENT PLOTLY EXPRESS SATELLITE BASEMAP INTERFACE WITH STANDARD FALLBACK CONTROL
+            if PLOTLY_AVAILABLE:
+                fig = px.scatter_mapbox(
+                    map_df, 
+                    lat="lat", 
+                    lon="lon", 
+                    zoom=17,
+                    size_max=15
+                )
+                
+                # Setup Mapbox Layers
+                layers = [
+                    # Esri World Satellite Basemap
+                    {
+                        "below": 'traces',
+                        "sourcetype": "raster",
+                        "sourceattribution": "Esri World Imagery",
+                        "source": [
+                            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                        ]
+                    }
+                ]
+                
+                # Append high-contrast cadastral polygon boundary outline layer if coordinates exist
+                if parcel_rings:
+                    geojson_layer = {
+                        "type": "FeatureCollection",
+                        "features": [{
+                            "type": "Feature",
+                            "geometry": {
+                                "type": "Polygon",
+                                "coordinates": parcel_rings
+                            },
+                            "properties": {}
+                        }]
+                    }
+                    layers.append({
+                        "sourcetype": "geojson",
+                        "source": geojson_layer,
+                        "type": "line",
+                        "color": "#FFCC00", # High-contrast Vivid Yellow Outline
+                        "width": 3
+                    })
+                
+                fig.update_layout(
+                    mapbox_style="white-bg",
+                    mapbox_layers=layers
+                )
+                fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=400, showlegend=False)
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.warning("Satellite basemap unavailable (Plotly not loaded). Falling back to basic street view.")
+                st.map(map_df, zoom=17)
 
         # UI Columns
         col1, col2 = st.columns([1, 1])
