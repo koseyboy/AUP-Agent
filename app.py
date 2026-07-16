@@ -130,7 +130,7 @@ AUP_KNOWLEDGE_BASE = {
         "side_rear": "6m",
         "coverage": "20% or 400m² (whichever is less)",
         "impervious": "10% or 400m² (whichever is less)",
-        "desc": "Spacious residential on urban fringes.",
+        "desc": "Spacious residential on urban peripheries.",
         "activities": {
             "1 Standalone Dwelling": (
                 "Permitted (P)"
@@ -720,7 +720,10 @@ if address_input:
         st.info(f"**Coordinates:** Lat {lat:.6f}, Lon {lon:.6f}")
         
         # MOVE THE MAP INSIDE AN EXPANDER TO PREVENT MOBILE TOUCH SCROLL TRAPPING
-        with st.expander("🗺️ View Interactive Map Location", expanded=False):
+        with st.expander(
+            "🗺️ View Interactive Map Location", 
+            expanded=False
+        ):
             map_df = pd.DataFrame({'lat': [lat], 'lon': [lon]})
             st.map(map_df, zoom=17, size=20)
         
@@ -737,10 +740,13 @@ if address_input:
             legal_desc, title_no, lot_size = query_nz_legal_description(lat, lon)
             flow_data = query_council_gis_layer(lat, lon, "Overland_Flow_Paths")
             landslide_data = query_council_gis_layer(
-                lat, lon, "Large_Scale_Landslide_Susceptibility"
+                lat, lon, 
+                "Large_Scale_Landslide_Susceptibility"
             )
             mana_whenua_data = query_council_gis_layer(
-                lat, lon, "Sites_and_Places_of_Significance_to_Mana_Whenua_Overlay"
+                lat, lon, 
+                "Sites_and_Places_of_Significance_"
+                "to_Mana_Whenua_Overlay"
             )
             overlays = query_unitary_overlays(lat, lon)
             precincts = query_unitary_precincts(lat, lon)
@@ -861,7 +867,10 @@ if address_input:
                 raw_details.append("- No Special Overlays Detected.")
                 
             # Render Column 1 as a single beautifully compiled Markdown block
-            st.markdown("\n".join(raw_details))
+            st.markdown(
+                "\n".join(raw_details), 
+                unsafe_allow_html=True
+            )
 
         with col2:
             col2_details = [
@@ -885,7 +894,10 @@ if address_input:
                 "" # MANDATORY BLANK LINE AFTER HTML SPACER
             ]
             # Render Column 2 details as a single compiled Markdown block
-            st.markdown("\n".join(col2_details))
+            st.markdown(
+                "\n".join(col2_details), 
+                unsafe_allow_html=True
+            )
             
             # AI Report Generator (With Manual Synthesis Button)
             st.header("AI Town Planning Synthesis")
