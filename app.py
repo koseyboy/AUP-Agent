@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import json
+
 # Import the functions we already wrote in our script
 from aup_agent import (
     geocode_auckland_address,
@@ -13,7 +14,8 @@ from aup_agent import (
     resolve_iwi_interests,
     ask_ai_planning_expert,
     AUP_KNOWLEDGE_BASE,
-    OPENAI_AVAILABLE
+    OPENAI_AVAILABLE,
+    OPENAI_API_KEY  # Imported from aup_agent as fallback
 )
 
 # Set up the browser tab and page layout
@@ -24,9 +26,9 @@ st.set_page_config(
 )
 
 st.title("Auckland Unitary Plan Agent")
-st.markdown("Enter any address to fetch live zoning, legal, and hazard data.")
+st.markdown("Zoning, legal, and hazard data.")
 
-# Set up the OpenAI API Key input in the sidebar (or use the script's hardcoded one)
+# Set up the OpenAI API Key input in the sidebar
 with st.sidebar:
     st.header("Credentials")
     user_api_key = st.text_input(
@@ -47,7 +49,7 @@ if address_input:
         lat, lon, full_address = geocode_auckland_address(address_input)
         
     if not lat:
-        st.error("Address not found inside New Zealand. Please check spelling.")
+        st.error("Address not found inside New Zealand.")
     else:
         # Create an interactive map at the top of the page
         st.subheader("Property Location")
@@ -69,7 +71,7 @@ if address_input:
                 else:
                     zone_name = raw_zone
                     
-            # Legal & Lot Size
+            # Legal, Lot Size & Title
             legal_desc, title_no, lot_size = query_nz_legal_description(lat, lon)
             
             # Hazards & Overlays
@@ -179,7 +181,7 @@ if address_input:
                 for act, status in rules['activities'].items():
                     st.write(f"  • {act}: `{status}`")
             else:
-                st.warning("Zoning rules are not pre-indexed for this zone type.")
+                st.warning("Zoning rules are not pre-indexed.")
                 
             st.subheader("Precincts & Overlays")
             if precincts:
@@ -209,13 +211,20 @@ if address_input:
             # AI Report Generator Button
             st.header("AI Town Planning Synthesis")
             
-            api_key_to_use = user_api_key if user_api_key else OPENAI_API_KEY
+            # Dynamic API key resolution
+            api_key_to_use = None
+            if user_api_key:
+                api_key_to_use = user_api_key
+            elif "OPENAI_API_KEY" in st.secrets:
+                api_key_to_use = st.secrets["OPENAI_API_KEY"]
+            else:
+                api_key_to_use = OPENAI_API_KEY
             
             if not api_key_to_use:
-                st.warning("Please configure an OpenAI API key in the sidebar or script to generate the AI report.")
+                st.warning("Please configure an OpenAI API key.")
             else:
                 if st.button("Synthesize Planning Report"):
-                    with st.spinner("Analyzing parameters and writing brief..."):
+                    with st.spinner("Analyzing parameters..."):
                         report = ask_ai_planning_expert(
                             api_key_to_use, full_address, zone_name, rules or {}, 
                             hazards, mana_status, iwi_profile, overlays, precincts,
