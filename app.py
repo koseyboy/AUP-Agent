@@ -130,7 +130,7 @@ AUP_KNOWLEDGE_BASE = {
         "side_rear": "6m",
         "coverage": "20% or 400m² (whichever is less)",
         "impervious": "10% or 400m² (whichever is less)",
-        "desc": "Spacious residential on urban peripheries.",
+        "desc": "Spacious residential on urban fringes.",
         "activities": {
             "1 Standalone Dwelling": (
                 "Permitted (P)"
@@ -486,7 +486,7 @@ def resolve_iwi_interests(lat, lon, address_str):
             "district": "Waitākere / West Auckland",
             "acts": ["Te Kawerau ā Maki Claims Settlement Act 2015"],
             "iwi_list": [
-                "Te Kawerau ā Maki", 
+                "Te Kawerau ā Maki (Primary local)", 
                 "Ngāti Whātua", 
                 "Te Ākitai Waiohua", 
                 "Ngāti Te Ata Waiohua"
@@ -645,13 +645,15 @@ p, li, span, label, div, td, th {
     color: #F8FAFC !important;        /* Bright Slate White */
     margin-bottom: 0.25rem !important; /* Tight block margins */
 }
-/* Ensure lists are equally tight */
+/* Ensure lists are equally tight and bullets are forced to display */
 ul, ol {
     margin-bottom: 0.25rem !important;
     padding-left: 1.2rem !important;
 }
 li {
+    list-style-type: disc !important; /* Force browser bullet dots */
     margin-bottom: 0.15rem !important;
+    display: list-item !important; /* Ensure standard list-item behavior */
 }
 /* Target bolded markdown elements */
 strong {
