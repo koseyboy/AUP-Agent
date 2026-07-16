@@ -6,6 +6,10 @@ import requests
 import pandas as pd
 import streamlit as st
 
+# Setup standard logging to capture potential API warnings and connection timeouts
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("AUP_Feasibility_App")
+
 # Graceful check for the 'openai' library
 try:
     from openai import OpenAI
@@ -14,16 +18,11 @@ except ImportError:
     OPENAI_AVAILABLE = False
     OpenAI = None
 
-# Configure logging for observability and diagnostic debugging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("AUP_Feasibility_App")
-
 # =====================================================================
-# CONFIGURATION & DATA STORAGE (8 FULLY INDEXED ZONES)
+# CONFIGURATION & DATA STORAGE (13 FULLY INDEXED ZONES)
 # =====================================================================
 
-# Hardcoded keys have been removed for security compliance.
-# Use Streamlit secrets (.streamlit/secrets.toml) or the Sidebar input.
+# Resolve API key securely. Avoid storing raw keys in code to prevent automated scanner revocation.
 def resolve_openai_api_key(sidebar_key=None):
     if sidebar_key and sidebar_key.strip():
         return sidebar_key.strip()
@@ -156,6 +155,81 @@ AUP_KNOWLEDGE_BASE = {
             "Minor Dwelling": "Permitted (P) (Site > 1ha, max 65m²)",
             "Accessory Buildings": "Permitted (P) (Sheds/Garages)",
             "Farming/Grazing": "Permitted (P) (Low-intensity agriculture)"
+        }
+    },
+    "Rural Coastal": {
+        "chapter": "Chapter H19",
+        "height": "9m (dwellings) / 15m (other buildings)",
+        "hirb": "N/A (rural setbacks apply)",
+        "front": "10m (20m adjoining arterial roads)",
+        "side_rear": "12m",
+        "coverage": "No general limit (controlled by setbacks)",
+        "impervious": "No general limit (controlled by setbacks)",
+        "desc": "Coastal environment protection, rural landscapes, and primary production.",
+        "activities": {
+            "1 Standalone Dwelling": "Permitted (P) (subject to standards)",
+            "Minor Dwelling": "Permitted (P) (Site > 1ha, max 65m²)",
+            "Accessory Buildings": "Permitted (P) (Must meet yard rules)"
+        }
+    },
+    "Rural Production": {
+        "chapter": "Chapter H19",
+        "height": "9m (dwellings) / 15m (other buildings)",
+        "hirb": "N/A (rural setbacks apply)",
+        "front": "10m (20m adjoining arterial roads)",
+        "side_rear": "12m",
+        "coverage": "No general limit",
+        "impervious": "No general limit",
+        "desc": "Primary production, farming, forestry, and rural commercial activity.",
+        "activities": {
+            "1 Standalone Dwelling": "Permitted (P)",
+            "Minor Dwelling": "Permitted (P) (Site > 1ha)",
+            "Accessory Buildings": "Permitted (P)"
+        }
+    },
+    "Mixed Use": {
+        "chapter": "Chapter H13",
+        "height": "13m to 18m (typically 18m)",
+        "hirb": "Applies on residential boundaries",
+        "front": "None (unless adjoining residential)",
+        "side_rear": "None (unless adjoining residential)",
+        "coverage": "No general building limit",
+        "impervious": "No general limit",
+        "desc": "Transition zone enabling residential, commercial, and light retail.",
+        "activities": {
+            "Dwellings": "Permitted (P) (subject to design standards)",
+            "Integrated Residential": "Restricted Discretionary (RD)",
+            "Commercial Activities": "Permitted (P)"
+        }
+    },
+    "Light Industry": {
+        "chapter": "Chapter H16",
+        "height": "20m max",
+        "hirb": "Applies only on residential/open space boundaries",
+        "front": "2.0m minimum",
+        "side_rear": "None (except 6m on residential boundaries)",
+        "coverage": "No general limit",
+        "impervious": "No general limit",
+        "desc": "Manufacturing, logistics, and light industrial processes.",
+        "activities": {
+            "Industrial Activities": "Permitted (P)",
+            "Dwellings": "Prohibited (PR) (excluding caretaker accommodation)",
+            "Trade Retail": "Permitted (P) (with floor size limits)"
+        }
+    },
+    "Informal Recreation": {
+        "chapter": "Chapter H7",
+        "height": "8m limit",
+        "hirb": "Applies to boundaries",
+        "front": "5m",
+        "side_rear": "5m",
+        "coverage": "10% building coverage max",
+        "impervious": "15% max",
+        "desc": "Public parks, reserves, and low-impact open spaces.",
+        "activities": {
+            "Recreational Activities": "Permitted (P)",
+            "Dwellings": "Non-Complying (NC) / Prohibited (PR)",
+            "Accessory Buildings": "Permitted (P) (under 100m²)"
         }
     }
 }
@@ -471,6 +545,49 @@ def resolve_iwi_interests(lat, lon, address_str):
         }
     return profile
 
+def generate_dynamic_zone_rules(api_key, zone_name):
+    """
+    Leverages GPT-4o-mini to dynamically generate a standard structural rule schema
+    if a zone is not pre-indexed in AUP_KNOWLEDGE_BASE.
+    """
+    prompt = f"""
+    You are an expert Auckland Town Planner. Research and synthesize the exact base development rules 
+    for the following zone from the Auckland Unitary Plan (AUP): "{zone_name}".
+    
+    Respond STRICTLY with a valid JSON object matching the schema below. 
+    Do not include markdown code blocks (such as ```json) or any conversational text.
+    
+    JSON Schema:
+    {{
+        "chapter": "AUP Chapter code (e.g. Chapter H19)",
+        "height": "Height limit (e.g. 9m)",
+        "hirb": "Height in Relation to Boundary rule or N/A",
+        "front": "Front yard setback (e.g. 10m)",
+        "side_rear": "Side/Rear yard setbacks (e.g. 12m)",
+        "coverage": "Building coverage limit",
+        "impervious": "Impervious coverage limit",
+        "desc": "A brief 1-2 sentence description of the zone's objective.",
+        "activities": {{
+            "1 Standalone Dwelling": "P, RD, NC, or D status",
+            "Minor Dwelling": "P, RD, NC, or D status",
+            "Accessory Buildings": "P, RD, NC, or D status"
+        }}
+    }}
+    """
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+            response_format={"type": "json_object"}
+        )
+        return json.loads(response.choices[0].message.content)
+    except Exception as e:
+        logger.error(f"Failed to dynamically generate rules for {zone_name}: {e}")
+    return None
+
 # =====================================================================
 # 2. OPENAI AGENT FEASIBILITY NARRATOR
 # =====================================================================
@@ -726,11 +843,21 @@ if address_input:
             
             iwi_profile = resolve_iwi_interests(lat, lon, full_address)
             
+            # Resolve Base Rules using Expanded Dictionary Search
             rules_orig = None
             for key, r in AUP_KNOWLEDGE_BASE.items():
                 if key.lower() in str(zone_name).lower():
                     rules_orig = r
                     break
+            
+            # Resolve API Key dynamically for early-stage fallback use
+            api_key_to_use = resolve_openai_api_key(user_api_key)
+            
+            # FALLBACK: If rules are not pre-indexed, dynamically resolve via AI
+            if not rules_orig and api_key_to_use and OPENAI_AVAILABLE:
+                with st.spinner(f"Querying AI to dynamically resolve rules for {zone_name}..."):
+                    rules_orig = generate_dynamic_zone_rules(api_key_to_use, zone_name)
+                    
             rules = json.loads(json.dumps(rules_orig)) if rules_orig else None
             
             # Apply Precinct Overrides
@@ -820,7 +947,7 @@ if address_input:
                     raw_details.append(f"  * **{act}:** `{status}`")
             else:
                 raw_details.append(
-                    "*Zoning rules are not pre-indexed for this zone type.*"
+                    "*Zoning rules could not be resolved for this zone type.*"
                 )
                 
             raw_details.extend([
@@ -892,10 +1019,8 @@ if address_input:
                 unsafe_allow_html=True
             )
             
-            # AI Report Generator
+            # AI Report Generator (With Manual Synthesis Button)
             st.header("AI Town Planning Synthesis")
-            
-            api_key_to_use = resolve_openai_api_key(user_api_key)
             
             if not api_key_to_use:
                 st.warning("Please configure an OpenAI API key via system secrets or the sidebar.")
