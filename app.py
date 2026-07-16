@@ -130,7 +130,7 @@ AUP_KNOWLEDGE_BASE = {
         "side_rear": "6m",
         "coverage": "20% or 400m² (whichever is less)",
         "impervious": "10% or 400m² (whichever is less)",
-        "desc": "Spacious residential on urban fringes.",
+        "desc": "Spacious residential on urban peripheries.",
         "activities": {
             "1 Standalone Dwelling": (
                 "Permitted (P)"
@@ -288,9 +288,12 @@ def format_landslide_data(attributes):
         f"- **Score:** {score:.1f}",
         f"- **Landslides:** {count}",
         "",
-        "<div style='height: 1.0rem;'></div>",
+        "<div style='height: 1.0rem;'></div>", # GAP 5: LANDSLIDES TO GUIDANCE HEADER
         "",
-        "**Town Planning Guidance Note:**"
+        "**Town Planning Guidance Note:**",
+        "",
+        "<div style='height: 1.0rem;'></div>", # GAP 6: GUIDANCE HEADER TO NOTE LIST
+        ""
     ]
     if sus.lower() in ['low', 'very low']:
         summary.extend([
@@ -488,7 +491,7 @@ def resolve_iwi_interests(lat, lon, address_str):
             "district": "Waitākere / West Auckland",
             "acts": ["Te Kawerau ā Maki Claims Settlement Act 2015"],
             "iwi_list": [
-                "Te Kawerau ā Maki", 
+                "Te Kawerau ā Maki (Primary local)", 
                 "Ngāti Whātua", 
                 "Te Ākitai Waiohua", 
                 "Ngāti Te Ata Waiohua"
@@ -610,7 +613,7 @@ html, body, [class*="css"], .stApp {
     font-family: 'Inter', sans-serif !important;
     background-color: #121212 !important; /* Deep dark grey */
 }
-/* Force headings to be Ultra-Bold, Crisp White, and tight spacing */
+/* Force all headings to be Ultra-Bold, Crisp White, and tight spacing */
 h1, h2, h3, .stHeading, 
 [data-testid="stMarkdownContainer"] h1, 
 [data-testid="stMarkdownContainer"] h2, 
@@ -618,8 +621,14 @@ h1, h2, h3, .stHeading,
     font-weight: 800 !important; /* Ultra-bold */
     color: #FFFFFF !important;   /* Crisp Solid White */
     line-height: 1.15 !important; /* Extremely tight heading line-height */
-    margin-bottom: 0.4rem !important; /* Tight spacing below */
-    margin-top: 1.0rem !important;
+}
+/* Flatten all native top & bottom margins of list items/text to zero */
+h1, h2, h3, .stHeading, p, li, ul, ol,
+[data-testid="stMarkdownContainer"] h1,
+[data-testid="stMarkdownContainer"] h2,
+[data-testid="stMarkdownContainer"] h3 {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
 }
 /* Main App Header Style (Bypasses browser scaling and flashing) */
 .custom-app-header {
@@ -645,16 +654,13 @@ p, li, span, label, div, td, th {
     line-height: 1.35 !important;     /* Tight standard line-spacing */
     font-weight: 400 !important;      /* Regular weight */
     color: #F8FAFC !important;        /* Bright Slate White */
-    margin-bottom: 0.25rem !important; /* Tight block margins */
 }
 /* Ensure lists are equally tight and bullets are forced to display */
 ul, ol {
-    margin-bottom: 0.25rem !important;
     padding-left: 1.2rem !important;
 }
 li {
     list-style-type: disc !important; /* Force browser bullet dots */
-    margin-bottom: 0.15rem !important;
     display: list-item !important; /* Ensure standard list-item behavior */
 }
 /* Target bolded markdown elements */
@@ -878,23 +884,34 @@ if address_input:
             col2_details = [
                 "## Geotech, Hazards & Cultural",
                 "",
+                "<div style='height: 1.0rem;'></div>", # GAP 1: MAIN HEADER TO SUBHEADER
+                "",
                 "### Environmental Hazards",
+                "",
+                "<div style='height: 1.0rem;'></div>", # GAP 2: SUBHEADER TO FLOW PATH
+                "",
                 f"- **Overland Flow Paths:** {hazards['overland_flow']}",
                 "",
-                "<div style='height: 1.0rem;'></div>", # GAP 1: OVERLAND TO GEOTECH
+                "<div style='height: 1.0rem;'></div>", # GAP 3: FLOW PATH TO ASSESS HEADER
                 "",
                 "**Geotechnical Assessment:**",
+                "",
+                "<div style='height: 1.0rem;'></div>", # GAP 4: ASSESS HEADER TO LIST
+                "",
                 f"{hazards['landslide']}",
                 "", 
-                "<div style='height: 1.0rem;'></div>", # GAP 3: GEOTECH TO IWI
+                "<div style='height: 1.0rem;'></div>", # GAP 7: ASSESS LIST TO MANA WHENUA HEADER
                 "", 
                 "### Mana Whenua & Treaty Settlements",
+                "",
+                "<div style='height: 1.0rem;'></div>", # GAP 8: MANA WHENUA HEADER TO LIST
+                "",
                 f"- **Mana Whenua Site Status:** {mana_status}",
                 f"- **Appendix 21 District:** {iwi_profile['district']}",
                 f"- **Settlement Acts:** {', '.join(iwi_profile['acts'])}",
                 f"- **Statutory Iwi:** {', '.join(iwi_profile['iwi_list'])}",
                 "", 
-                "<div style='height: 1.0rem;'></div>", # Spacer before AI generator
+                "<div style='height: 1.0rem;'></div>", # GAP 9: LIST TO AI SYNTHESIS HEADER
                 "" 
             ]
             # Render Column 2 details as a single compiled Markdown block
