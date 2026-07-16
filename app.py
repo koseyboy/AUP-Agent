@@ -130,7 +130,7 @@ AUP_KNOWLEDGE_BASE = {
         "side_rear": "6m",
         "coverage": "20% or 400m² (whichever is less)",
         "impervious": "10% or 400m² (whichever is less)",
-        "desc": "Spacious residential on urban peripheries.",
+        "desc": "Spacious residential on urban fringes.",
         "activities": {
             "1 Standalone Dwelling": (
                 "Permitted (P)"
@@ -599,64 +599,66 @@ def ask_ai_planning_expert(
 # 3. STREAMLIT INTERFACE AND MAIN CONTROLLER
 # =====================================================================
 st.set_page_config(
-    page_title="AUP Feasibility Agent", 
+    page_title="Auckland Unitary Plan Site Info", 
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# INJECT ULTRA-BOLD WHITE HEADINGS AND BRIGHT OFF-WHITE BODY (DARK THEME)
+# INJECT CSS FOR SPACIOUS LINE SPACING AND GREATER MOBILE FONT SIZES
 st.markdown("""
 <style>
-/* Unify typography scale & dark background palette */
+/* Base configuration */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 html, body, [class*="css"], .stApp {
     font-family: 'Inter', sans-serif !important;
     background-color: #121212 !important; /* Deep dark grey */
 }
-/* Force all headings to be Ultra-Bold and Crisp White */
+/* Force headings to be Ultra-Bold, Crisp White, and well spaced */
 h1, h2, h3, .stHeading, 
 [data-testid="stMarkdownContainer"] h1, 
 [data-testid="stMarkdownContainer"] h2, 
 [data-testid="stMarkdownContainer"] h3 {
     font-weight: 800 !important; /* Ultra-bold */
     color: #FFFFFF !important;   /* Crisp Solid White */
+    line-height: 1.3 !important; /* Unified heading line-height */
+    margin-bottom: 0.8rem !important;
 }
 h1 {
-    font-size: 2.1rem !important;
-    margin-bottom: 0.5rem !important;
+    font-size: 2.4rem !important; /* Larger main title */
+    margin-bottom: 1.0rem !important;
 }
 h2 {
-    font-size: 1.45rem !important;
-    margin-top: 1.5rem !important;
-    margin-bottom: 0.8rem !important;
+    font-size: 1.65rem !important; /* Larger section header */
+    margin-top: 1.8rem !important;
     border-bottom: 2px solid #FFFFFF; /* White underline */
-    padding-bottom: 0.4rem;
+    padding-bottom: 0.5rem;
 }
 h3 {
-    font-size: 1.15rem !important;
-    margin-top: 1.2rem !important;
-    margin-bottom: 0.6rem !important;
+    font-size: 1.25rem !important; /* Larger subheader */
+    margin-top: 1.4rem !important;
 }
-/* Keep body text regular weight (400) and crisp off-white for contrast */
+/* Unified larger body text & standard spacious line-height */
 p, li, span, label, div, td, th {
-    font-size: 0.95rem !important;
-    line-height: 1.55 !important;
-    font-weight: 400 !important; /* Regular weight */
-    color: #F8FAFC !important;   /* Bright Slate White */
+    font-size: 1.05rem !important; /* Larger readable body font */
+    line-height: 1.65 !important;  /* Uniform line spacing */
+    font-weight: 400 !important;   /* Regular weight */
+    color: #F8FAFC !important;     /* Bright Slate White */
+    margin-bottom: 0.6rem !important; /* Consistent block margins */
 }
 /* Target bolded markdown elements */
 strong {
     color: #FFFFFF !important;
     font-weight: 700 !important;
 }
-/* Standardize metrics/values to use ultra-bold white */
+/* Standardize metrics/values to use larger ultra-bold white */
 div[data-testid="stMetricValue"] {
-    font-size: 1.5rem !important;
+    font-size: 1.7rem !important;
     font-weight: 800 !important;
     color: #FFFFFF !important;   /* Crisp Solid White */
 }
 div[data-testid="stMetricLabel"] p {
     color: #F8FAFC !important;
+    font-size: 1.05rem !important;
 }
 /* Style Streamlit expander, sidebar, and inputs to match dark mode */
 div[data-testid="stExpander"] {
@@ -674,7 +676,7 @@ input {
 </style>
 """, unsafe_allow_html=True)
 
-st.title("Auckland Unitary Plan Agent")
+st.title("Auckland Unitary Plan Site Info")
 st.markdown("Zoning, legal, and hazard data.")
 
 with st.sidebar:
